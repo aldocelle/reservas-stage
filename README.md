@@ -1,29 +1,48 @@
-# Viña Stage · Reserva
+# Viña Stage · Sistema de Reservas
 
-Frontend independiente para la pantalla de reservas de Viña Stage, construido a partir de la referencia visual entregada.
+Sistema full-stack para Viña Stage. La interfaz mantiene el diseño de la referencia y ahora consume una API real con PostgreSQL.
 
-## Incluye
+## Arquitectura
 
-- Selector de día con cupos disponibles.
-- Indicador circular de ocupación.
-- Horarios disponibles.
-- Selección de horario.
-- Formulario de datos del cliente.
-- Consentimiento para comunicaciones por WhatsApp.
-- Confirmación visual de reserva.
-- Diseño responsive.
+- Frontend: HTML + CSS + JavaScript.
+- Backend: Node.js + Express.
+- Base de datos: PostgreSQL.
+- Autenticación: JWT + bcrypt.
+- Seguridad: Helmet, CORS, rate limiting y validación Zod.
+- Concurrencia: transacciones y bloqueo del horario para evitar sobre-reservas.
+- Administración: dashboard, reservas, estados, cupos y horarios.
+- Auditoría: registro de cambios realizados por administradores.
 
-## Ejecución
+## API pública
 
-No requiere Node ni dependencias. Abrir `index.html` en un navegador o publicarlo directamente en un hosting estático.
+- GET /api/health
+- GET /api/availability?date=YYYY-MM-DD
+- POST /api/reservations
+- GET /api/reservations/code/:code
+- PATCH /api/reservations/:id/cancel
 
-## Próxima integración
+## API administrativa
 
-La interfaz está separada de la lógica de backend para poder conectar posteriormente:
+- POST /api/auth/login
+- GET /api/admin/dashboard
+- GET /api/admin/schedules
+- PATCH /api/admin/schedules/:id
+- PATCH /api/admin/slots/:id
+- GET /api/reservations
+- PATCH /api/reservations/:id/status
 
-- Base de datos de reservas.
-- API.
-- Google Calendar.
-- WhatsApp.
-- Panel administrativo.
-- Control real de cupos y horarios.
+## Instalación
+
+1. Crear una base PostgreSQL.
+2. Copiar .env.example a .env.
+3. Configurar DATABASE_URL y JWT_SECRET.
+4. Ejecutar npm install.
+5. Ejecutar npm run db:init.
+6. Ejecutar npm run admin:create.
+7. Iniciar con npm run dev o npm start.
+
+La aplicación Express sirve simultáneamente el frontend y la API.
+
+## Integraciones preparadas
+
+El archivo .env.example contempla WhatsApp Cloud API y Google Calendar. Las credenciales no se guardan en GitHub. La integración efectiva de esos servicios requiere sus credenciales y configuración de producción.
