@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050708">
+  <title>Reserva tu cupo | Viña Stage</title>
+  <meta name="description" content="Reserva tu cupo en Viña Stage. Música, amigos y buena onda.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="site">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Viña Stage">
+        <span class="crown">♛</span>
+        <span class="brand-name">VIÑA<br>STAGE</span>
+      </a>
+      <div class="tagline">MÚSICA <i>•</i> AMIGOS <i>•</i> BUENA ONDA</div>
+      <button class="menu" aria-label="Abrir menú"><span></span><span></span><span></span></button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-logo">
+            <span class="crown">♛</span>
+            <span>VIÑA<br>STAGE</span>
+          </div>
+          <p class="eyebrow">RESERVAS</p>
+          <h1>RESERVA<br><strong>TU CUPO</strong></h1>
+          <p class="intro">Selecciona el día y horario, completa tus datos<br class="desktop"> y asegura tu lugar.</p>
+        </div>
+      </section>
+
+      <section class="panel day-panel">
+        <div class="section-title">SELECCIONA UN DÍA</div>
+        <div class="days" id="days"></div>
+      </section>
+
+      <section class="panel schedule-panel">
+        <div class="schedule-heading">
+          <h2>HORARIOS DISPONIBLES <span>•</span> <strong id="selectedDayLabel">LUNES</strong></h2>
+          <div>Total del día: <b id="dayTotal">32/40</b></div>
+        </div>
+        <div class="slots" id="slots"></div>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="section-title">COMPLETA TUS DATOS</div>
+        <form id="reservationForm">
+          <div class="form-grid">
+            <label class="field"><span class="icon">♙</span><input name="nombre" required placeholder="Nombre *" autocomplete="given-name"></label>
+            <label class="field"><span class="icon">♙</span><input name="apellido" required placeholder="Apellido *" autocomplete="family-name"></label>
+            <label class="field"><span class="icon">⌕</span><input name="whatsapp" required placeholder="WhatsApp *" autocomplete="tel"></label>
+            <label class="field"><span class="icon">✉</span><input type="email" name="email" placeholder="Email (opcional)" autocomplete="email"></label>
+          </div>
+          <label class="consent"><input type="checkbox" name="consent" checked> <span>Acepto recibir información de Viña Stage por WhatsApp.</span></label>
+          <button class="reserve-btn" type="submit"><span>▣</span> RESERVAR CUPO</button>
+        </form>
+      </section>
+
+      <section class="confirmation" id="confirmation" hidden>
+        <div class="check">✓</div>
+        <div><strong>¡Reserva confirmada!</strong><span>Revisa tu WhatsApp, ahí encontrarás el código de tu reserva.</span></div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-brand"><span class="crown">♛</span><strong>VIÑA<br>STAGE</strong><small>MÚSICA • AMIGOS • BUENA ONDA</small></div>
+      <div class="socials"><span>◎</span><span>f</span><span>♪</span><span>⌖ Viña del Mar</span></div>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
