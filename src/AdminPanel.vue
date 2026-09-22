@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { DEMO_EMAIL, DEMO_ON, demoCheck, demoLoad, demoReset, demoSave } from './demo';
 const API = import.meta.env.VITE_API_BASE_URL || '/api';
 const authed = ref(false), admin = ref(null);
 const loginForm = ref({ email: '', password: '' });
@@ -15,6 +16,9 @@ const filters = ref({ date: '', status: '', q: '' });
 const resBusy = ref(false);
 const settings = ref({});
 const settingsBusy = ref(false), settingsMsg = ref('');
+const demoMode = ref(false);
+const demoEmail = DEMO_EMAIL;
+const demoOn = DEMO_ON;
 const tabs = [['overview','Resumen'],['days','Días y horarios'],['bookings','Reservas'],['config','Config']];
 async function api(path, opts) {
   const r = await fetch(API + path, Object.assign({ credentials: 'include', headers: { 'Content-Type': 'application/json' } }, opts || {}));
@@ -23,20 +27,44 @@ async function api(path, opts) {
   return x;
 }
 async function checkAuth() {
-  try { const x = await api('/auth.php?action=status'); authed.value = !!x.authenticated; admin.value = x.admin || null; }
-  catch (e) { authed.value = false; }
+  try { const x = await api('/auth.php?action=status'); authed.value = !!x.authenticated; admin.value = x.admin || null; if (authed.value) demoMode.value = false; }
+  catch (e) {
+    if (DEMO_ON && sessionStorage.getItem('vs_demo_admin') === '1') {
+      authed.value = true; admin.value = { email: DEMO_EMAIL, role: 'admin' }; demoMode.value = true;
+    } else { authed.value = false; }
+  }
 }
 async function doLogin() {
   loginBusy.value = true; loginError.value = '';
   try {
     const x = await api('/auth.php?action=login', { method: 'POST', body: JSON.stringify({ email: loginForm.value.email, password: loginForm.value.password }) });
-    authed.value = true; admin.value = x.admin; loginForm.value.password = ''; await loadAll();
-  } catch (e) { loginError.value = e.message; }
+    authed.value = true; admin.value = x.admin; demoMode.value = false; loginForm.value.password = ''; await loadAll();
+  } catch (e) {
+    if (DEMO_ON && demoCheck(loginForm.value.email, loginForm.value.password)) {
+      try { sessionStorage.setItem('vs_demo_admin', '1'); } catch (se) {}
+      authed.value = true; admin.value = { email: DEMO_EMAIL, role: 'admin' }; demoMode.value = true; loginError.value = ''; loginForm.value.password = ''; await loadAllDemo();
+    } else { loginError.value = e.message; }
+  }
   finally { loginBusy.value = false; }
 }
 async function doLogout() {
   try { await api('/auth.php?action=logout', { method: 'POST', body: '{}' }); } catch (e) {}
-  authed.value = false; admin.value = null;
+  try { sessionStorage.removeItem('vs_demo_admin'); } catch (se) {}
+  authed.value = false; admin.value = null; demoMode.value = false;
+}
+function loadAllDemo() {
+  loading.value = true; error.value = '';
+  try {
+    const d = demoLoad();
+    days.value = d.days.map(x => ({ id: x.id, weekday: x.weekday, label: x.label, capacity: x.capacity, active: x.active, slots: x.slots.map(s => ({ id: s.id, start: s.start, end: s.end, capacity: s.capacity, active: s.active })) }));
+    editDay.value = {}; newSlots.value = {};
+    for (const day of days.value) { editDay.value[day.id] = { label: day.label, capacity: day.capacity, active: !!day.active }; newSlots.value[day.id] = { start: '', end: '', capacity: 14 }; }
+    const today = new Date().toISOString().slice(0, 10);
+    dash.value = { totals: { today: d.reservations.filter(r => r.reservation_date === today).length, upcoming: d.reservations.filter(r => r.status === 'confirmed').length, total: d.reservations.length, cancelled: d.reservations.filter(r => r.status === 'cancelled').length }, next: d.reservations.slice(0, 8) };
+    reservations.value = d.reservations.slice(0, 200);
+    settings.value = Object.assign({}, d.settings);
+  } catch (e) { error.value = e.message; }
+  finally { loading.value = false; }
 }
 async function loadAll() {
   loading.value = true; error.value = '';
@@ -53,26 +81,44 @@ async function loadAll() {
   finally { loading.value = false; }
 }
 async function saveDay(id) {
+  if (demoMode.value) return demoSaveDay(id);
   const e = editDay.value[id];
   await api('/schedules.php?path=' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(e) });
   await loadAll();
 }
+function demoMut(fn) { const d = demoLoad(); fn(d); demoSave(d); loadAllDemo(); }
+function demoSaveDay(id) {
+  const e = editDay.value[id];
+  demoMut(d => { const day = d.days.find(x => x.id === id); if (day) { day.label = String(e.label).slice(0, 30); day.capacity = e.capacity; day.active = e.active ? 1 : 0; } });
+}
 async function saveSlot(id, p) {
+  if (demoMode.value) { demoMut(d => { for (const day of d.days) { const s = day.slots.find(x => x.id === id); if (s) { s.start = p.start; s.end = p.end; s.capacity = p.capacity; s.active = p.active ? 1 : 0; } } }); return; }
   await api('/schedules.php?path=slots/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(p) });
   await loadAll();
 }
 async function createSlot(tid) {
   const n = newSlots.value[tid];
   if (!n.start || !n.end) { error.value = 'Completa inicio y fin (HH:MM)'; return; }
+  if (demoMode.value) { demoMut(d => { const day = d.days.find(x => x.id === tid); if (day) day.slots.push({ id: 's' + Date.now(), start: n.start, end: n.end, capacity: n.capacity || 14, active: 1, reserved: 0 }); }); return; }
   await api('/schedules.php?path=' + encodeURIComponent(tid) + '/slots', { method: 'POST', body: JSON.stringify(n) });
   await loadAll();
 }
 async function removeSlot(id) {
   if (!confirm('¿Desactivar este horario?')) return;
+  if (demoMode.value) { demoMut(d => { for (const day of d.days) { const s = day.slots.find(x => x.id === id); if (s) s.active = 0; } }); return; }
   await api('/schedules.php?path=slots/' + encodeURIComponent(id), { method: 'DELETE' });
   await loadAll();
 }
 async function loadReservations() {
+  if (demoMode.value) {
+    const d = demoLoad();
+    let list = d.reservations.slice();
+    if (filters.value.date) list = list.filter(r => r.reservation_date === filters.value.date);
+    if (filters.value.status) list = list.filter(r => r.status === filters.value.status);
+    if (filters.value.q) { const q = filters.value.q.toLowerCase(); list = list.filter(r => (r.reservation_code + r.first_name + r.last_name + r.whatsapp).toLowerCase().includes(q)); }
+    reservations.value = list.slice(0, 200);
+    return;
+  }
   const p = new URLSearchParams();
   if (filters.value.date) p.set('date', filters.value.date);
   if (filters.value.status) p.set('status', filters.value.status);
@@ -81,6 +127,7 @@ async function loadReservations() {
   reservations.value = x.reservations || [];
 }
 async function setStatus(id, status) {
+  if (demoMode.value) { demoMut(d => { const r = d.reservations.find(x => x.id === id); if (r) r.status = status; }); return; }
   resBusy.value = true;
   try { await api('/admin_reservations.php?path=' + id + '/status', { method: 'PATCH', body: JSON.stringify({ status }) }); await loadReservations(); }
   catch (e) { error.value = e.message; }
@@ -88,20 +135,23 @@ async function setStatus(id, status) {
 }
 async function loadSettings() { const x = await api('/settings.php'); settings.value = x.settings || {}; }
 async function saveSettings() {
+  if (demoMode.value) { demoMut(d => { d.settings = Object.assign({}, d.settings, settings.value); settings.value = Object.assign({}, d.settings); }); settingsMsg.value = 'Guardado ✓ (demo)'; return; }
   settingsBusy.value = true; settingsMsg.value = '';
   try { await api('/settings.php', { method: 'PUT', body: JSON.stringify(settings.value) }); settingsMsg.value = 'Guardado ✓'; }
   catch (e) { settingsMsg.value = e.message; }
   finally { settingsBusy.value = false; }
 }
-onMounted(async () => { await checkAuth(); if (authed.value) await loadAll(); else loading.value = false; });
+function resetDemo() { demoReset(); try { sessionStorage.removeItem('vs_demo_admin'); } catch (e) {} loadAllDemo(); }
+onMounted(async () => { await checkAuth(); if (authed.value) { if (demoMode.value) loadAllDemo(); else await loadAll(); } else loading.value = false; });
 </script>
 <template>
 <div class="admin-wrap">
 <header class="admin-top">
 <div><a href="#inicio" class="admin-back">Volver al sitio</a>
 <h1>Panel Admin - Vina Stage</h1>
-<small v-if="admin">{{ admin.email }} - {{ admin.role }}</small></div>
+<small v-if="admin">{{ admin.email }} - {{ admin.role }}</small><span v-if="demoMode" class="pill">DEMO</span></div>
 <button v-if="authed" type="button" class="ghost-btn small" @click="doLogout">Salir</button>
+<button v-if="demoMode" type="button" class="ghost-btn small" @click="resetDemo">Reiniciar demo</button>
 </header>
 <section v-if="!authed" class="panel form-panel admin-login">
 <div class="section-title">INGRESO ADMINISTRADOR</div>
@@ -114,6 +164,7 @@ onMounted(async () => { await checkAuth(); if (authed.value) await loadAll(); el
 <button class="reserve-btn" type="submit" :disabled="loginBusy">{{ loginBusy ? 'INGRESANDO...' : 'INGRESAR' }}</button>
 </form>
 <p class="admin-hint">Crea el admin con ADMIN_EMAIL=... ADMIN_PASS=... php database/create_admin.php</p>
+<p v-if="demoOn" class="admin-demo">Demo disponible: {{ demoEmail }} / demo1234 <button type="button" class="ghost-btn small" @click="loginForm.email = demoEmail; loginForm.password = 'demo1234'">Autocompletar</button></p>
 </section>
 <template v-else>
 <nav class="admin-tabs" role="tablist">
