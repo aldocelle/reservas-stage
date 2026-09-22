@@ -13,14 +13,19 @@ import adminRoutes from './routes/admin.js';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const app=express();
 const port=Number(process.env.PORT||3000);
+const allowedOrigins=(process.env.CORS_ORIGIN||'').split(',').map(x=>x.trim()).filter(Boolean);
 
 app.use(helmet({contentSecurityPolicy:false}));
-app.use(cors({origin:process.env.CORS_ORIGIN?.split(',').map(x=>x.trim())||true}));
+app.use(cors({
+  origin:(origin,callback)=>{
+    if(!origin || allowedOrigins.length===0 || allowedOrigins.includes(origin)) return callback(null,true);
+    return callback(new Error('Origen no permitido por CORS'));
+  }
+}));
 app.use(express.json({limit:'100kb'}));
 
-const publicLimiter=rateLimit({windowMs:15*60*1000,max:150,standardHeaders:true,legacyHeaders:false});
 app.use('/api/auth',rateLimit({windowMs:15*60*1000,max:20,standardHeaders:true,legacyHeaders:false}));
-app.use('/api/reservations',publicLimiter);
+app.use('/api/reservations',rateLimit({windowMs:15*60*1000,max:150,standardHeaders:true,legacyHeaders:false}));
 
 app.get('/api/health',async(req,res)=>res.json({ok:true,service:'reservas-stage',timestamp:new Date().toISOString()}));
 app.use('/api/auth',authRoutes);
@@ -29,7 +34,7 @@ app.use('/api/reservations',reservationRoutes);
 app.use('/api/admin',adminRoutes);
 
 app.use(express.static(__dirname));
-app.get('*',(req,res)=>{
+app.use((req,res)=>{
   if(req.path.startsWith('/api/')) return res.status(404).json({error:'Endpoint no encontrado'});
   res.sendFile(path.join(__dirname,'index.html'));
 });
