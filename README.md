@@ -1,48 +1,36 @@
 # Viña Stage · Sistema de Reservas
 
-Sistema full-stack para Viña Stage. La interfaz mantiene el diseño de la referencia y ahora consume una API real con PostgreSQL.
+Landing + reservas. Frontend Vue 3 + Vite, backend PHP + MySQL.
 
-## Arquitectura
+## Stack real
 
-- Frontend: HTML + CSS + JavaScript.
-- Backend: Node.js + Express.
-- Base de datos: PostgreSQL.
-- Autenticación: JWT + bcrypt.
-- Seguridad: Helmet, CORS, rate limiting y validación Zod.
-- Concurrencia: transacciones y bloqueo del horario para evitar sobre-reservas.
-- Administración: dashboard, reservas, estados, cupos y horarios.
-- Auditoría: registro de cambios realizados por administradores.
+- Frontend: Vue 3 + Vite (`src/App.vue`, `src/styles.css`), build a `dist/`.
+- Backend: PHP 8 + MySQL (`api/config.php`, `api/availability.php`, `api/reservations.php`).
+- Base de datos: `database/schema.sql` (MySQL 8 / MariaDB 10.5+, crea tablas + horarios Lun–Vie 14–20h).
+- Deploy: GitHub Pages sirve el `dist` estático; el PHP debe vivir en un hosting con MySQL.
 
-## API pública
+## API
 
-- GET /api/health
-- GET /api/availability?date=YYYY-MM-DD
-- POST /api/reservations
-- GET /api/reservations/code/:code
-- PATCH /api/reservations/:id/cancel
+- `GET /api/availability.php?date=YYYY-MM-DD` → `{ date, slots: [{ slot_id, start_time, end_time, capacity, reserved, available }] }`
+- `POST /api/reservations.php` body `{ date, slotId, firstName, lastName, whatsapp, email?, whatsappConsent? }` → `201 { reservation: { id, reservation_code, status } }`
 
-## API administrativa
+Validaciones backend: fecha `YYYY-MM-DD` real, no pasada, máx 60 días, `weekday` del slot = día pedido (1=Lun…7=Dom), sin duplicados (mismo whatsapp+slot+fecha), sin sobrecupo (transacción + `FOR UPDATE`), whatsapp `8–15 dígitos`, email opcional válido, reintento de código `VS-XXXXXXXX` ante colisión.
 
-- POST /api/auth/login
-- GET /api/admin/dashboard
-- GET /api/admin/schedules
-- PATCH /api/admin/schedules/:id
-- PATCH /api/admin/slots/:id
-- GET /api/reservations
-- PATCH /api/reservations/:id/status
+## Desarrollo local
 
-## Instalación
+1. `npm install`
+2. `npm run dev` (Vite en `:5173`, `/api` proxea a `http://localhost:8080` — ver `vite.config.js`)
+3. Servir el PHP: `php -S localhost:8080 -t .` (o apuntar el DocumentRoot a `api/`) y crear la DB con `database/schema.sql`
+4. Variables: copiar `.env.example` → `.env` (`DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASS`, `VITE_API_BASE_URL`)
 
-1. Crear una base PostgreSQL.
-2. Copiar .env.example a .env.
-3. Configurar DATABASE_URL y JWT_SECRET.
-4. Ejecutar npm install.
-5. Ejecutar npm run db:init.
-6. Ejecutar npm run admin:create.
-7. Iniciar con npm run dev o npm start.
+Sin backend la UI cae a datos `demo` y muestra el aviso “modo demostración”.
 
-La aplicación Express sirve simultáneamente el frontend y la API.
+## Producción
 
-## Integraciones preparadas
+1. `npm run build` → `dist/`
+2. GitHub Pages publica `dist` (`.github/workflows/pages.yml` usa `npm ci`, requiere `package-lock.json` trackeado)
+3. Subir `api/` a hosting PHP + importar `database/schema.sql`
+4. Setear `VITE_API_BASE_URL=https://tu-dominio.cl/api` en el build de Pages (secret/env del workflow o `.env.production`)
 
-El archivo .env.example contempla WhatsApp Cloud API y Google Calendar. Las credenciales no se guardan en GitHub. La integración efectiva de esos servicios requiere sus credenciales y configuración de producción.
+> Nota: Pages es estático, no ejecuta PHP. Si `VITE_API_BASE_URL=/api` en Pages, las reservas quedan en modo demo.
+
