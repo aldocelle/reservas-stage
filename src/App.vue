@@ -20,10 +20,10 @@ const carouselIndex=ref(0);
 let carouselTimer=null;
 
 const events=[
-  {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE'},
-  {id:2,date:'PRÓXIMAMENTE',title:'STAGE COMEDY',type:'COMEDIA EN VIVO',tone:'orange',mark:'COMEDY'},
-  {id:3,date:'PRÓXIMAMENTE',title:'NIGHT STAGE',type:'NOCHE DE EVENTOS',tone:'violet',mark:'NIGHT'},
-  {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE'}
+  {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE',image:'flyers/live-session.jpg'},
+  {id:2,date:'PRÓXIMAMENTE',title:'STAGE COMEDY',type:'COMEDIA EN VIVO',tone:'orange',mark:'COMEDY',image:'flyers/stage-comedy.jpg'},
+  {id:3,date:'PRÓXIMAMENTE',title:'NIGHT STAGE',type:'NOCHE DE EVENTOS',tone:'violet',mark:'NIGHT',image:'flyers/night-stage.jpg'},
+  {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE',image:'flyers/stage-up.jpg'}
 ];
 
 const activeEvents=computed(()=>events.map((_,i)=>events[(carouselIndex.value+i)%events.length]));
@@ -72,6 +72,7 @@ onUnmounted(()=>{stopCarousel();window.removeEventListener('hashchange',onHash)}
   <div class="section-head"><div><p class="eyebrow">CARTELERA</p><h2>LO QUE PASA<br><strong>EN STAGE</strong></h2></div><div class="carousel-controls"><button type="button" aria-label="Evento anterior" @click="setEvent(-1)">←</button><button type="button" aria-label="Evento siguiente" @click="setEvent(1)">→</button></div></div>
   <div class="event-stage" @mouseenter="stopCarousel" @mouseleave="startCarousel">
     <div v-for="(event,i) in activeEvents" :key="event.id+'-'+i" :class="['event-card',{front:i===0},event.tone]" :style="{ '--stack': i }">
+      <img v-if="event.image" :src="event.image" :alt="event.title" class="flyer-img" loading="lazy" @error="event.image=''" />
       <div class="flyer-noise"></div><span class="flyer-mark">{{event.mark}}</span><div class="flyer-content"><small>{{event.date}}</small><h3>{{event.title}}</h3><p>{{event.type}}</p></div><div class="flyer-footer">VIÑA STAGE · AV. VALPARAÍSO 65</div>
     </div>
   </div>
