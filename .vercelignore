@@ -1,0 +1,24 @@
+# Qué NO se sube a Vercel (el deploy es solo del frontend: Vite construye dist/).
+# Si algún día se corren los endpoints PHP como funciones serverless en Vercel,
+# hay que quitar la línea `api/` de este archivo (el runtime necesita subir el código).
+.git
+.github
+node_modules
+dist
+dist-ssr
+.vscode
+.vercel
+*.log
+.env
+.env.local
+.env.*
+!.env.example
+# Backend y utilidades que Vercel no ejecuta (viven en Railway / hosting PHP)
+api
+database
+docker
+docker-compose.yml
+router.php
+scripts
+design
+.DS_Store

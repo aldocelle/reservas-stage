@@ -18,3 +18,8 @@ npm-debug.log*
 # Env
 .env
 .env.local
+.vercel
+
+# Flyers originales (fuente de diseño, no se publican).
+# Los flyers publicados viven en public/flyers/*.jpg
+design/flyers-origen/
