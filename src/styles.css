@@ -38,7 +38,7 @@
 .block-list b{font-size:13px;color:#eee;font-weight:700}
 .slot .slot-range{color:#ccc;font-size:12px;margin-top:6px;letter-spacing:.3px}
 .slot .slot-cupos{color:#e10600;font-size:12px;margin-top:5px;font-weight:700}
-.slot.full{border-color:#2a0a0a;background:#0a0a0a}
+.slot.full{border-color:rgba(255,255,255,.2);background:#0d0d0d}
 .slot-chosen{margin:0 0 14px;font-size:12px;color:#aaa}
 .slot-chosen b{color:#ffd400}
 .admin-table .muted{color:#888;font-size:11px}

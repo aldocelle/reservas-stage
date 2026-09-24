@@ -134,7 +134,7 @@ button:disabled{cursor:not-allowed}
 .slot.active{border:1px solid var(--yellow);background:var(--yellow);color:#0a0a0a}
 .slot.active:hover{background:var(--yellow);border-color:var(--red)}
 .slot.active strong,.slot.active .solo-desktop{color:#0a0a0a}
-.slot.full{opacity:.42;background:transparent}
+.slot.full{opacity:1;background:#0d0d0d;color:var(--text)}
 .slot strong{display:block;font-family:var(--display);font-size:18px;letter-spacing:.4px;color:var(--text)}
 .slot .slot-range{display:block;margin-top:8px;color:var(--muted);font-size:11px}
 .slot .slot-cupos{display:block;margin-top:5px;color:var(--yellow);font-size:11px;font-weight:800}
