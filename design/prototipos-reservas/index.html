@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Prototipos · Reservas Viña Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+.choose{max-width:1100px;margin:0 auto;padding:64px 34px 90px}
+.choose h1{margin:14px 0 0;font-family:var(--display);font-size:clamp(44px,6vw,82px);font-weight:800;line-height:.8;letter-spacing:-1.5px;text-transform:uppercase}
+.choose h1 strong{color:var(--vermilion)}
+.choose .lead{margin:20px 0 0;max-width:72ch;color:var(--ink-soft);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:38px}
+.card{display:block;padding:24px;border:2px solid var(--ink);background:var(--paper-deep);box-shadow:6px 6px 0 var(--ink);color:var(--ink);text-decoration:none}
+.card b{display:inline-block;margin-bottom:10px;padding:4px 8px;background:var(--vermilion);color:var(--paper);font-size:11px;letter-spacing:1.6px}
+.card h2{margin:0;font-family:var(--display);font-size:34px;font-weight:800;line-height:.9;text-transform:uppercase}
+.card p{margin:12px 0 0;color:var(--ink-soft);font-size:13px;line-height:1.5}
+.card:hover{background:var(--acid)}
+.hint{margin:34px 0 0;padding:18px 20px;border:2px dashed var(--ink);color:var(--ink-soft);font-size:13px}
+.hint b{color:var(--vermilion-dark)}
+@media(max-width:1000px){.cards{grid-template-columns:1fr}.choose{padding:44px 18px 70px}}
+</style>
+</head>
+<body>
+<div class="choose">
+  <p class="eyebrow">Reservas / prototipos</p>
+  <h1>El logo <strong>es el sistema</strong></h1>
+  <p class="lead">Cuatro direcciones para la sección de reservas y, primero, la paleta muestreada del letrero. Si la decisión es "el logo para todo", empezá por <b>D · Noche neón</b> y por la lámina de paleta. Todo estático, con el mismo contenido y el mismo calendario real de la app.</p>
+  <div class="cards">
+    <a class="card" href="paleta-logo.html"><b>Paleta</b><h2>Del logo al token</h2><p>Colores muestreados del PNG (710.650 píxeles): muro violáceo, cian = 45% del neón, magenta = 26%, oro = 9%. Incluye el mapa a los tokens de la app y el mismo componente en papel y en noche.</p></a>
+    <a class="card" href="direccion-d.html"><b>D</b><h2>Noche neón</h2><p>El <b>sitio completo</b> con la paleta del logo: portada, cartelera, reservas con el letrero, contacto y footer. La opción "el logo para todo".</p></a>
+    <a class="card" href="direccion-a.html"><b>A</b><h2>Marquesina</h2><p>Placa nocturna contenida dentro de una web de papel. Letrero con encendido de neón y banner enmarcado. <b>Es lo que hoy está en App.vue.</b></p></a>
+    <a class="card" href="direccion-b.html"><b>B</b><h2>Noche total</h2><p>Solo la sección de reservas como fachada oscura: letrero flotando en el muro y calendario como ventanas iluminadas, con el resto del sitio en papel.</p></a>
+    <a class="card" href="direccion-c.html"><b>C</b><h2>Imprenta neón</h2><p>Papel y tipografía display: letrero como placa impresa, banner con cinta, neón solo como acento. Conserva el titular en texto.</p></a>
+  </div>
+
+  <p class="hint">Cómo se miran: abrí cada archivo en el navegador (doble clic alcanza, son estáticos y no tocan la app). Dentro de cada uno hay una barra arriba para saltar entre las tres. <b>Probá también con la ventana angosta</b> (~380 px) para ver el comportamiento móvil.</p>
+</div>
+</body>
+</html>

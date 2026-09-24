@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Prototipo A · Marquesina — Reservas Viña Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+/* DIRECCIÓN A · MARQUESINA — placa nocturna contenida dentro de la página de papel. */
+.reservas{padding:104px 34px 120px;background:var(--paper)}
+.wrap{max-width:1252px;margin:0 auto}
+.plate{position:relative;isolation:isolate;overflow:hidden;padding:clamp(16px,2.3vw,28px) clamp(16px,2.6vw,34px) clamp(20px,2.6vw,34px);border:2px solid var(--ink);background:var(--night);box-shadow:10px 10px 0 var(--vermilion);color:var(--paper)}
+.plate::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(58% 90% at 5% 5%,color-mix(in srgb,var(--neon-pink) 34%,transparent),transparent 62%),radial-gradient(52% 86% at 96% 97%,color-mix(in srgb,var(--neon-cyan) 30%,transparent),transparent 60%),repeating-linear-gradient(118deg,transparent 0 94px,color-mix(in srgb,var(--acid) 8%,transparent) 95px 97px)}
+.plate::after{content:"";position:absolute;left:0;right:0;bottom:0;z-index:3;height:4px;background:linear-gradient(90deg,var(--vermilion),var(--acid) 46%,var(--neon-pink))}
+.tag{position:relative;z-index:2;display:flex;align-items:center;gap:10px;margin:0 0 clamp(10px,1.6vw,18px);color:var(--acid);font-size:10px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase}
+.tag span{padding:4px 7px;background:var(--vermilion);color:var(--paper);font-family:var(--display);font-size:16px;letter-spacing:0}
+.sign{position:relative;z-index:2}
+/* mix-blend-mode:screen funde el muro oscuro del PNG con la placa (solo suma luz, nunca oscurece). */
+.sign img{width:100%;height:auto;max-height:clamp(200px,30vw,430px);margin:0 auto;object-fit:contain;mix-blend-mode:screen;filter:saturate(1.14) contrast(1.05);animation:encendido 1.2s steps(1,end) .2s both}
+/* Extra de esta dirección: el letrero "enciende" al cargar (CSS puro, sin JS). */
+@keyframes encendido{0%{opacity:0}6%{opacity:1}10%{opacity:.2}16%{opacity:1}21%{opacity:.35}28%{opacity:1}100%{opacity:1}}
+.row{position:relative;z-index:2;display:grid;grid-template-columns:minmax(260px,430px) minmax(0,1fr);gap:clamp(20px,2.4vw,34px);align-items:center;margin-top:clamp(14px,2vw,24px);padding-top:clamp(18px,2.2vw,28px);border-top:1px solid color-mix(in srgb,var(--paper) 24%,transparent)}
+.poster{margin:0;border:2px solid var(--paper);background:var(--ink);box-shadow:7px 7px 0 var(--acid)}
+.poster img{width:100%;height:auto}
+.info{min-width:0}
+.facts{display:flex;flex-wrap:wrap;gap:9px;margin:0;padding:0;list-style:none}
+.facts li{padding:9px 13px;border:1px solid color-mix(in srgb,var(--paper) 34%,transparent);font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase}
+.facts li:first-child{border-color:var(--acid);background:var(--acid);color:var(--ink)}
+.cta{display:inline-flex;align-items:center;gap:12px;margin-top:clamp(16px,2vw,22px);padding:13px 22px;border:1px solid var(--paper);background:var(--vermilion);color:var(--paper);box-shadow:5px 5px 0 var(--acid);font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:1.4px;line-height:1;text-transform:uppercase;text-decoration:none}
+.note{margin:14px 0 0;max-width:48ch;color:oklch(88% .02 84 / .76);font-size:12px;line-height:1.55}
+@media(max-width:1000px){.row{grid-template-columns:1fr;gap:22px}.poster{max-width:440px;margin:0 auto}}
+@media(max-width:760px){.reservas{padding:76px 16px 92px}.plate{padding:14px;box-shadow:6px 6px 0 var(--vermilion)}.sign img{max-height:210px}.poster{max-width:none;box-shadow:5px 5px 0 var(--acid)}.facts li{flex:1 1 46%;padding:8px 10px;font-size:10px;letter-spacing:.6px;text-align:center}.cta{width:100%;justify-content:center;font-size:20px}.note{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.sign img{animation:none}}
+
+</style>
+</head>
+<body>
+<header class="proto">
+  <b>Prototipo A · Marquesina</b>
+  <p>Placa nocturna <em>contenida</em>: el letrero se enciende dentro de un marco oscuro, el banner va enmarcado y el calendario sigue en papel. <em>Es lo que hoy está implementado en App.vue.</em></p>
+  <nav>
+    <a href="direccion-a.html" aria-current="true">A · Marquesina</a>
+    <a href="direccion-b.html">B · Noche total</a>
+    <a href="direccion-c.html">C · Imprenta neón</a>
+  </nav>
+</header>
+<div class="topbar">
+  <a class="brand" href="#"><span class="crown">♛</span>Viña<br>Stage</a>
+  <nav class="nav"><a href="#eventos">Cartelera</a><a href="#reservas">Reservas</a><a href="#contacto">Contacto</a></nav>
+  <a class="top-cta" href="#dia">Reservar cupo</a>
+</div>
+<div class="context">
+  <p class="eyebrow">Cartelera / 01</p>
+  <h1>Lo que pasa <strong>en stage</strong></h1>
+</div>
+<main>
+<section class="reservas" id="reservas">
+  <div class="wrap">
+    <h2 class="sr-only">Reserva tu cupo para la Promo Estudiante Viña Stage</h2>
+    <div class="plate">
+      <p class="tag"><span>02</span> Reservas · Promo Estudiante</p>
+      <div class="sign"><img src="../../public/flyers/logo%20stage.png" alt="" width="1165" height="610"></div>
+      <div class="row">
+        <figure class="poster"><img src="../../public/flyers/reservas.png" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736"></figure>
+        <div class="info">
+          <ul class="facts">
+            <li>📅 Lunes a viernes</li>
+            <li>🕐 14:00 a 20:00 Hrs.</li>
+            <li>⚠️ Solo 60 cupos diarios</li>
+            <li>🎓 TNE vigente</li>
+          </ul>
+          <a class="cta" href="#dia">Reserva tu cupo <span aria-hidden="true">↓</span></a>
+          <p class="note">Elige día y horario, completa tus datos y confirma tu reserva. Muestra tu código y tu TNE vigente al llegar a Viña Stage.</p>
+        </div>
+      </div>
+    </div>
+    <div id="dia">
+      <div class="panel day-panel">
+        <div class="section-title">Selecciona un día</div>
+        <div class="cal-nav"><button type="button" aria-label="Mes anterior">‹</button><strong>Septiembre 2026</strong><button type="button" aria-label="Mes siguiente" disabled>›</button></div>
+        <div class="cal-head"><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span></div>
+        <div class="cal-grid">
+          <span class="cal-cell empty" aria-hidden="true"></span>
+          <button class="cal-cell" type="button"><span class="cal-day">1</span><span class="cal-cupos">8/60</span><span class="cal-bar"><i style="width:13%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">2</span><span class="cal-cupos">24/60</span><span class="cal-bar"><i style="width:40%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">3</span><span class="cal-cupos">31/60</span><span class="cal-bar"><i style="width:52%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">4</span><span class="cal-cupos">47/60</span><span class="cal-bar"><i style="width:78%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">7</span><span class="cal-cupos">12/60</span><span class="cal-bar"><i style="width:20%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">8</span><span class="cal-cupos">35/60</span><span class="cal-bar"><i style="width:58%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">9</span><span class="cal-cupos">52/60</span><span class="cal-bar"><i style="width:87%"></i></span></button>
+          <button class="cal-cell full" type="button" disabled><span class="cal-day">10</span><span class="cal-cupos">60/60</span><span class="cal-bar"><i style="width:100%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">11</span><span class="cal-cupos">18/60</span><span class="cal-bar"><i style="width:30%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">14</span><span class="cal-cupos">6/60</span><span class="cal-bar"><i style="width:10%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">15</span><span class="cal-cupos">29/60</span><span class="cal-bar"><i style="width:48%"></i></span></button>
+          <button class="cal-cell active" type="button" aria-pressed="true"><span class="cal-day">16</span><span class="cal-cupos">38/60</span><span class="cal-bar"><i style="width:63%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">17</span><span class="cal-cupos">9/60</span><span class="cal-bar"><i style="width:15%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">18</span><span class="cal-cupos">44/60</span><span class="cal-bar"><i style="width:73%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">21</span><span class="cal-cupos">2/60</span><span class="cal-bar"><i style="width:3%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">22</span><span class="cal-cupos">21/60</span><span class="cal-bar"><i style="width:35%"></i></span></button>
+          <button class="cal-cell off" type="button" disabled><span class="cal-day">23</span><span class="cal-cupos">—</span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">24</span><span class="cal-cupos">33/60</span><span class="cal-bar"><i style="width:55%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">25</span><span class="cal-cupos">51/60</span><span class="cal-bar"><i style="width:85%"></i></span></button>
+        </div>
+        <p class="cal-note">Reservas desde <b>1 de septiembre</b> · agenda abierta hasta <b>30 de septiembre</b> · 3 bloques de 2 horas por día.</p>
+      </div>
+      <div class="panel schedule-panel">
+        <div class="schedule-heading"><h2>Bloques disponibles <span>•</span> <strong>Miércoles 16 de septiembre</strong></h2><div>3 bloques de 2 horas · Cupos del día: <b>38/60</b></div></div>
+        <div class="slots">
+          <button class="slot active" type="button" aria-pressed="true"><strong>BLOQUE 1 · 14:00</strong><span class="slot-range">14:00 a 16:00 Hrs.</span><span class="slot-cupos">12 cupos disponibles</span><span class="tick">✓</span></button>
+          <button class="slot full" type="button" disabled><strong>BLOQUE 2 · 16:00</strong><span class="slot-range">16:00 a 18:00 Hrs.</span><span class="slot-cupos">0 cupos disponibles</span></button>
+          <button class="slot" type="button"><strong>BLOQUE 3 · 18:00</strong><span class="slot-range">18:00 a 20:00 Hrs.</span><span class="slot-cupos">26 cupos disponibles</span></button>
+        </div>
+      </div>
+      <div class="panel form-panel">
+        <div class="section-title">Completa tus datos</div>
+        <p class="slot-chosen">Bloque elegido: <b>Bloque 1 · 14:00 a 16:00 Hrs.</b> · Miércoles 16 de septiembre</p>
+        <form onsubmit="return false">
+          <div class="form-grid">
+            <label class="field"><span aria-hidden="true">♙</span><input placeholder="Nombre *" autocomplete="given-name"></label>
+            <label class="field"><span aria-hidden="true">♙</span><input placeholder="Apellido *" autocomplete="family-name"></label>
+            <label class="field"><span aria-hidden="true">⌕</span><input placeholder="WhatsApp *" inputmode="tel" autocomplete="tel"></label>
+            <label class="field"><span aria-hidden="true">✉</span><input type="email" placeholder="Email (opcional)" autocomplete="email"></label>
+          </div>
+          <label class="consent"><input type="checkbox" checked><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label>
+          <button class="reserve-btn" type="submit">▣ Reservar cupo</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="decision">
+  <h3>Qué mirar en A · Marquesina</h3>
+  <ul>
+    <li><b>Es la ya implementada</b>: si te gusta, no hay nada que rehacer (está en <b>src/App.vue</b> y ya compila).</li>
+    <li>La placa oscura <b>ancla la mirada</b> sin sacar la sección del mundo de papel del resto del sitio.</li>
+    <li>Se lee como letrero encendido por el <b>encendido</b> de neón y el derrame de luz de las esquinas.</li>
+    <li>Riesgo: es un bloque grande; en pantallas bajas empuja el calendario hacia abajo.</li>
+  </ul>
+  <p>Probá achicar la ventana a ~380 px para ver el apilado móvil.</p>
+</section>
+
+
+
+
+</main>
+<footer><div>Av. Valparaíso 65 · Viña del Mar</div><div>Prototipo estático · design/prototipos-reservas</div></footer>
+</body>
+</html>

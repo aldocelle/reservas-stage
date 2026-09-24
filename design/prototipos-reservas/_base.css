@@ -1,0 +1,94 @@
+/* Prototipos de reservas · base compartida.
+   Reusa los tokens y componentes reales de src/vs-refine.css para que lo que ves
+   aquí sea lo que verás en la app. Esta carpeta es de diseño: no entra al build. */
+:root{
+  --paper:oklch(94% .025 82);--paper-deep:oklch(88% .035 76);--ink:oklch(19% .025 58);--ink-soft:oklch(35% .025 58);
+  --vermilion:oklch(59% .19 34);--vermilion-dark:oklch(47% .18 32);--acid:oklch(87% .19 103);--blue:oklch(42% .16 271);
+  --night:oklch(13% .02 268);--neon-pink:oklch(72% .24 350);--neon-cyan:oklch(80% .15 205);--line:oklch(19% .025 58 / .22);
+  --display:"Barlow Condensed",Impact,sans-serif;--body:"DM Sans",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+img{display:block;max-width:100%}
+button,input{font:inherit}
+button{cursor:pointer}
+a{-webkit-tap-highlight-color:transparent}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.eyebrow{margin:0;color:var(--vermilion);font-size:11px;font-weight:800;letter-spacing:2.7px;text-transform:uppercase}
+/* Barra de prototipo: cambia de dirección sin volver al chat. */
+.proto{position:sticky;top:0;z-index:99;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:11px 20px;background:#0b0d14;border-bottom:3px solid var(--neon-pink);color:#efece4;font-size:12px}
+.proto b{font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:1.6px;color:var(--acid);text-transform:uppercase}
+.proto p{margin:0;max-width:70ch;color:#a9a49a}
+.proto em{color:#f4f1e8;font-style:normal}
+.proto nav{margin-left:auto;display:flex;gap:8px}
+.proto a{padding:7px 11px;border:1px solid #3c3c46;color:#efece4;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase}
+.proto a[aria-current="true"]{background:var(--acid);border-color:var(--acid);color:#0b0d14}
+/* Topbar y banda de contexto: para juzgar la sección dentro del flujo real. */
+.topbar{height:84px;max-width:1320px;margin:auto;padding:0 34px;display:flex;align-items:center;gap:32px;border-bottom:2px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--display);font-size:24px;font-weight:800;line-height:.75;letter-spacing:.5px;text-transform:uppercase}
+.brand .crown{color:var(--vermilion);font-size:29px;line-height:1;transform:rotate(-8deg)}
+.nav{display:flex;align-items:center;gap:28px;margin-left:auto}
+.nav a{color:var(--ink);text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+.top-cta{padding:13px 18px;border:2px solid var(--ink);background:var(--vermilion);color:var(--paper);box-shadow:4px 4px 0 var(--ink);text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+.context{max-width:1320px;margin:auto;padding:52px 34px 0;border-top:2px solid var(--ink)}
+.context h1{margin:10px 0 0;font-family:var(--display);font-size:clamp(46px,6vw,84px);font-weight:800;line-height:.8;letter-spacing:-1.5px;text-transform:uppercase}
+.context h1 strong{color:var(--vermilion)}
+/* Paneles de reserva: los mismos de la app, para juzgar el contraste con el hero. */
+.panel{margin-top:18px;padding:24px;border:1px solid var(--ink);background:var(--paper-deep);color:var(--ink);box-shadow:5px 5px 0 var(--ink)}
+.section-title{display:flex;align-items:center;gap:11px;margin:0 0 20px;color:var(--vermilion-dark);font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase}
+.section-title::before{content:"";width:28px;height:4px;background:var(--vermilion)}
+.cal-nav{display:flex;align-items:center;gap:13px;margin:0 0 16px}
+.cal-nav strong{font-family:var(--display);font-size:27px;font-weight:700;letter-spacing:.4px}
+.cal-nav button{width:38px;height:38px;border:1px solid var(--ink);background:var(--acid);color:var(--ink);box-shadow:2px 2px 0 var(--ink);font-size:18px;line-height:1}
+.cal-head{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:7px}
+.cal-head span{color:var(--ink-soft);font-size:10px;font-weight:800;letter-spacing:.8px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cal-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:82px;padding:8px 4px;border:1px solid var(--line);background:color-mix(in srgb,var(--paper) 65%,transparent);color:var(--ink)}
+.cal-cell.empty{border:0;background:none}
+.cal-cell.off{opacity:.25}
+.cal-cell.full{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink-soft)}
+.cal-cell.active{border:2px solid var(--ink);background:var(--vermilion);color:var(--paper);box-shadow:3px 3px 0 var(--ink)}
+.cal-day{font-family:var(--display);font-size:26px;font-weight:700;line-height:1;letter-spacing:.3px}
+.cal-cupos{color:var(--vermilion-dark);font-size:10px;font-weight:800;letter-spacing:.4px}
+.cal-cell.active .cal-cupos{color:var(--acid)}
+.cal-bar{width:64%;height:5px;background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.cal-bar i{display:block;height:100%;background:var(--vermilion)}
+.cal-cell.active .cal-bar{background:var(--ink)}
+.cal-cell.active .cal-bar i{background:var(--acid)}
+.cal-note{margin:16px 0 0;color:var(--ink-soft);font-size:12px}
+.cal-note b{color:var(--vermilion-dark)}
+.schedule-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.schedule-heading h2{margin:0;font-family:var(--display);font-size:30px;font-weight:700;line-height:.9;letter-spacing:.3px;text-transform:uppercase}
+.schedule-heading h2 span{color:var(--vermilion)}
+.schedule-heading h2 strong{color:var(--vermilion-dark)}
+.schedule-heading>div{color:var(--ink-soft);font-size:12px}
+.schedule-heading b{color:var(--vermilion-dark)}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.slot{position:relative;display:flex;flex-direction:column;gap:5px;min-height:112px;padding:17px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);text-align:left}
+.slot strong{font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.4px}
+.slot-range{color:var(--ink-soft);font-size:12px}
+.slot-cupos{color:var(--vermilion-dark);font-size:12px;font-weight:700}
+.slot.active{border:2px solid var(--ink);background:var(--vermilion);color:var(--paper);box-shadow:4px 4px 0 var(--ink)}
+.slot.active .slot-range{color:oklch(93% .018 84 / .8)}
+.slot.active .slot-cupos{color:var(--acid)}
+.slot.full{opacity:.42;background:transparent}
+.tick{position:absolute;top:10px;right:10px;width:20px;height:20px;background:var(--acid);color:var(--ink);font-size:12px;line-height:20px;text-align:center}
+.slot-chosen{margin:0 0 14px;color:var(--ink-soft);font-size:12px}
+.slot-chosen b{color:var(--vermilion-dark)}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.field{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:8px;min-height:58px;padding:7px 12px;border:1px solid var(--ink);background:var(--paper);color:var(--vermilion-dark);font-size:11px;font-weight:800}
+.field input{width:100%;height:40px;border:0;outline:0;background:transparent;color:var(--ink);font-size:14px}
+.field input::placeholder{color:var(--ink-soft);opacity:1}
+.consent{display:flex;align-items:flex-start;gap:8px;margin:14px 0 16px;color:var(--ink-soft);font-size:11px}
+.consent input{accent-color:var(--vermilion);margin-top:3px}
+.reserve-btn{width:100%;min-height:52px;border:1px solid var(--ink);background:var(--vermilion);color:var(--paper);box-shadow:4px 4px 0 var(--ink);font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+/* Cierre: checklist para decidir sobre el prototipo. */
+.decision{max-width:1252px;margin:56px auto 0;padding:22px 24px;border:2px dashed var(--ink);background:color-mix(in srgb,var(--paper-deep) 70%,transparent);color:var(--ink-soft);font-size:13px}
+.decision h3{margin:0 0 10px;color:var(--ink);font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.decision ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.decision b{color:var(--vermilion-dark)}
+footer{max-width:1320px;margin:64px auto 0;padding:27px 34px 34px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;gap:20px;color:var(--ink-soft);font-size:12px}
+@media(max-width:1000px){.slots{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.topbar{padding:0 18px}.nav{display:none}.context{padding:40px 18px 0}.panel{padding:17px;box-shadow:4px 4px 0 var(--ink)}.cal-grid,.cal-head{gap:4px}.cal-cell{min-height:61px;padding:7px 2px}.cal-day{font-size:19px}.cal-cupos{font-size:9px}.cal-bar{width:78%}.slot{min-height:104px;padding:13px 10px}.schedule-heading{display:grid;gap:10px}.schedule-heading h2{font-size:26px}.decision{margin:40px 18px 0;padding:18px}.proto{font-size:11px}}
+

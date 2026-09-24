@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Prototipo C · Imprenta neón — Reservas Viña Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+/* DIRECCIÓN C · IMPRENTA NEÓN — papel y tipografía display; el neón entra como acento. */
+.reservas{position:relative;padding:104px 34px 120px;background:var(--paper)}
+/* Trama de imprenta: la misma textura de puntos del sitio real. */
+.reservas::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='%23e8492f' fill-opacity='.24'%3E%3Ccircle cx='16' cy='25' r='1.5'/%3E%3Ccircle cx='124' cy='74' r='1'/%3E%3Ccircle cx='73' cy='151' r='1.3'/%3E%3C/g%3E%3Cg fill='none' stroke='%23231f1b' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M0 42h180M0 132h180'/%3E%3C/g%3E%3C/svg%3E");background-size:180px 180px}
+.wrap{position:relative;max-width:1252px;margin:0 auto}
+.print{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(300px,470px);gap:clamp(24px,3.4vw,52px);align-items:center}
+.neon-rule{width:120px;height:6px;margin:16px 0 0;background:linear-gradient(90deg,var(--neon-pink),var(--neon-cyan))}
+.head h2{margin:14px 0 0;font-family:var(--display);font-size:clamp(64px,8.2vw,124px);font-weight:800;line-height:.74;letter-spacing:-1.8px;text-transform:uppercase}
+.head h2 strong{color:var(--vermilion)}
+.head p{margin:20px 0 0;max-width:46ch;color:var(--ink-soft);font-size:14px;line-height:1.55}
+.cta{display:inline-flex;align-items:center;gap:12px;margin-top:24px;padding:14px 22px;border:2px solid var(--ink);background:var(--vermilion);color:var(--paper);box-shadow:5px 5px 0 var(--ink);font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:1.2px;line-height:1;text-transform:uppercase;text-decoration:none}
+/* El letrero entra como placa impresa enmarcada, con cinta adhesiva. */
+.plate{position:relative;isolation:isolate;margin:0;padding:15px;border:2px solid var(--ink);background:var(--night);box-shadow:9px 9px 0 var(--vermilion);transform:rotate(-.7deg)}
+.plate img{width:100%;height:auto;max-height:290px;margin:0 auto;object-fit:contain;mix-blend-mode:screen;filter:saturate(1.1) contrast(1.04)}
+.plate::after{content:"";position:absolute;inset:6px;border:1px solid color-mix(in srgb,var(--acid) 45%,transparent);pointer-events:none}
+.tape{position:absolute;top:-15px;left:50%;width:126px;height:30px;background:color-mix(in srgb,var(--acid) 78%,transparent);transform:translateX(-50%) rotate(-2.2deg);box-shadow:0 3px 8px oklch(19% .025 58 / .22)}
+.flyer-row{display:grid;grid-template-columns:minmax(300px,470px) minmax(0,1fr);gap:clamp(24px,3.4vw,52px);align-items:center;margin-top:clamp(30px,4vw,54px);padding-top:clamp(24px,3vw,40px);border-top:1px solid var(--line)}
+.taped{position:relative;margin:0;padding:11px;border:2px solid var(--ink);background:var(--paper-deep);box-shadow:7px 7px 0 var(--ink);transform:rotate(1.1deg)}
+.taped img{width:100%;height:auto}
+.taped::before{content:"";position:absolute;top:-13px;left:24px;width:104px;height:26px;background:color-mix(in srgb,var(--acid) 76%,transparent);transform:rotate(-3deg);box-shadow:0 3px 8px oklch(19% .025 58 / .2)}
+.price{margin:0;display:flex;align-items:baseline;gap:12px}
+.price span{color:var(--ink-soft);font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+.price strong{font-family:var(--display);font-size:60px;font-weight:800;line-height:.9;letter-spacing:-1px;color:var(--vermilion-dark)}
+.facts{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 0;padding:0;list-style:none}
+.facts li{padding:9px 13px;border:1px solid color-mix(in srgb,var(--neon-cyan) 55%,var(--ink));background:var(--paper);color:var(--ink);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.facts li:first-child{border-color:var(--ink);background:var(--acid);color:var(--ink)}
+.note{margin:16px 0 0;max-width:46ch;color:var(--ink-soft);font-size:12px;line-height:1.55}
+@media(max-width:1000px){.print{grid-template-columns:1fr}.plate{max-width:560px;margin:0 auto}.flyer-row{grid-template-columns:1fr}}
+@media(max-width:760px){.reservas{padding:76px 16px 92px}.head h2{font-size:clamp(58px,17vw,96px)}.plate{transform:none;box-shadow:6px 6px 0 var(--vermilion)}.plate img{max-height:200px}.taped{transform:none}.facts li{flex:1 1 46%;padding:8px 10px;font-size:10px;text-align:center}.cta{width:100%;justify-content:center;font-size:20px}.price strong{font-size:46px}}
+
+</style>
+</head>
+<body>
+<header class="proto">
+  <b>Prototipo C · Imprenta neón</b>
+  <p>Papel y <em>tipografía display</em>: el letrero entra como placa impresa y el banner como flyer pegado con cinta; el neón queda solo como acento. Es la única que conserva el titular en texto.</p>
+  <nav>
+    <a href="direccion-a.html">A · Marquesina</a>
+    <a href="direccion-b.html">B · Noche total</a>
+    <a href="direccion-c.html" aria-current="true">C · Imprenta neón</a>
+  </nav>
+</header>
+<div class="topbar">
+  <a class="brand" href="#"><span class="crown">♛</span>Viña<br>Stage</a>
+  <nav class="nav"><a href="#eventos">Cartelera</a><a href="#reservas">Reservas</a><a href="#contacto">Contacto</a></nav>
+  <a class="top-cta" href="#dia">Reservar cupo</a>
+</div>
+<div class="context">
+  <p class="eyebrow">Cartelera / 01</p>
+  <h1>Lo que pasa <strong>en stage</strong></h1>
+</div>
+<main>
+<section class="reservas" id="reservas">
+  <div class="wrap">
+    <div class="print">
+      <div class="head">
+        <p class="eyebrow">Reservas / 02</p>
+        <div class="neon-rule" aria-hidden="true"></div>
+        <h2>Reserva<br><strong>tu cupo</strong></h2>
+        <p>Asegura tu cupo para la <b>Promo Estudiante Viña Stage</b>: 2 schop Cristal + pizza individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., con tu TNE vigente.</p>
+        <a class="cta" href="#dia">Reserva tu cupo <span aria-hidden="true">↓</span></a>
+      </div>
+      <figure class="plate">
+        <span class="tape" aria-hidden="true"></span>
+        <img src="../../public/flyers/logo%20stage.png" alt="Letrero de neón Viña Stage" width="1165" height="610">
+      </figure>
+    </div>
+    <div class="flyer-row">
+      <figure class="taped"><img src="../../public/flyers/reservas.png" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736"></figure>
+      <div>
+        <p class="price"><span>Todo por</span> <strong>$5.000</strong></p>
+        <ul class="facts">
+          <li>📅 Lunes a viernes</li>
+          <li>🕐 14:00 a 20:00 Hrs.</li>
+          <li>⚠️ Solo 60 cupos diarios</li>
+          <li>🎓 TNE vigente</li>
+        </ul>
+        <p class="note">Elige día y horario, completa tus datos y confirma tu reserva. Muestra tu código y tu TNE vigente al llegar a Viña Stage.</p>
+      </div>
+    </div>
+    <div id="dia">
+      <div class="panel day-panel">
+        <div class="section-title">Selecciona un día</div>
+        <div class="cal-nav"><button type="button" aria-label="Mes anterior">‹</button><strong>Septiembre 2026</strong><button type="button" aria-label="Mes siguiente" disabled>›</button></div>
+        <div class="cal-head"><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span></div>
+        <div class="cal-grid">
+          <span class="cal-cell empty" aria-hidden="true"></span>
+          <button class="cal-cell" type="button"><span class="cal-day">1</span><span class="cal-cupos">8/60</span><span class="cal-bar"><i style="width:13%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">2</span><span class="cal-cupos">24/60</span><span class="cal-bar"><i style="width:40%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">3</span><span class="cal-cupos">31/60</span><span class="cal-bar"><i style="width:52%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">4</span><span class="cal-cupos">47/60</span><span class="cal-bar"><i style="width:78%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">7</span><span class="cal-cupos">12/60</span><span class="cal-bar"><i style="width:20%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">8</span><span class="cal-cupos">35/60</span><span class="cal-bar"><i style="width:58%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">9</span><span class="cal-cupos">52/60</span><span class="cal-bar"><i style="width:87%"></i></span></button>
+          <button class="cal-cell full" type="button" disabled><span class="cal-day">10</span><span class="cal-cupos">60/60</span><span class="cal-bar"><i style="width:100%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">11</span><span class="cal-cupos">18/60</span><span class="cal-bar"><i style="width:30%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">14</span><span class="cal-cupos">6/60</span><span class="cal-bar"><i style="width:10%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">15</span><span class="cal-cupos">29/60</span><span class="cal-bar"><i style="width:48%"></i></span></button>
+          <button class="cal-cell active" type="button" aria-pressed="true"><span class="cal-day">16</span><span class="cal-cupos">38/60</span><span class="cal-bar"><i style="width:63%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">17</span><span class="cal-cupos">9/60</span><span class="cal-bar"><i style="width:15%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">18</span><span class="cal-cupos">44/60</span><span class="cal-bar"><i style="width:73%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">21</span><span class="cal-cupos">2/60</span><span class="cal-bar"><i style="width:3%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">22</span><span class="cal-cupos">21/60</span><span class="cal-bar"><i style="width:35%"></i></span></button>
+          <button class="cal-cell off" type="button" disabled><span class="cal-day">23</span><span class="cal-cupos">—</span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">24</span><span class="cal-cupos">33/60</span><span class="cal-bar"><i style="width:55%"></i></span></button>
+          <button class="cal-cell" type="button"><span class="cal-day">25</span><span class="cal-cupos">51/60</span><span class="cal-bar"><i style="width:85%"></i></span></button>
+        </div>
+        <p class="cal-note">Reservas desde <b>1 de septiembre</b> · agenda abierta hasta <b>30 de septiembre</b> · 3 bloques de 2 horas por día.</p>
+      </div>
+      <div class="panel schedule-panel">
+        <div class="schedule-heading"><h2>Bloques disponibles <span>•</span> <strong>Miércoles 16 de septiembre</strong></h2><div>3 bloques de 2 horas · Cupos del día: <b>38/60</b></div></div>
+        <div class="slots">
+          <button class="slot active" type="button" aria-pressed="true"><strong>BLOQUE 1 · 14:00</strong><span class="slot-range">14:00 a 16:00 Hrs.</span><span class="slot-cupos">12 cupos disponibles</span><span class="tick">✓</span></button>
+          <button class="slot full" type="button" disabled><strong>BLOQUE 2 · 16:00</strong><span class="slot-range">16:00 a 18:00 Hrs.</span><span class="slot-cupos">0 cupos disponibles</span></button>
+          <button class="slot" type="button"><strong>BLOQUE 3 · 18:00</strong><span class="slot-range">18:00 a 20:00 Hrs.</span><span class="slot-cupos">26 cupos disponibles</span></button>
+        </div>
+      </div>
+      <div class="panel form-panel">
+        <div class="section-title">Completa tus datos</div>
+        <p class="slot-chosen">Bloque elegido: <b>Bloque 1 · 14:00 a 16:00 Hrs.</b> · Miércoles 16 de septiembre</p>
+        <form onsubmit="return false">
+          <div class="form-grid">
+            <label class="field"><span aria-hidden="true">♙</span><input placeholder="Nombre *" autocomplete="given-name"></label>
+            <label class="field"><span aria-hidden="true">♙</span><input placeholder="Apellido *" autocomplete="family-name"></label>
+            <label class="field"><span aria-hidden="true">⌕</span><input placeholder="WhatsApp *" inputmode="tel" autocomplete="tel"></label>
+            <label class="field"><span aria-hidden="true">✉</span><input type="email" placeholder="Email (opcional)" autocomplete="email"></label>
+          </div>
+          <label class="consent"><input type="checkbox" checked><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label>
+          <button class="reserve-btn" type="submit">▣ Reservar cupo</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="decision">
+  <h3>Qué mirar en C · Imprenta neón</h3>
+  <ul>
+    <li>Es la única que <b>conserva el titular en texto</b> ("Reserva tu cupo") además del letrero: nada de SEO ni lectura rápida se pierde.</li>
+    <li>Papel, trama de puntos y cinta adhesiva: <b>convive mejor</b> con la cartelera y el resto del sitio.</li>
+    <li>El neón queda como <b>acento</b> (hilo magenta/cián, bordes de fichas) y el letrero funciona como placa impresa.</li>
+    <li>Riesgo: dos elementos fuertes (titular y letrero) compiten; si molesta, se puede bajar el titular o dejar solo el letrero.</li>
+  </ul>
+  <p>Es la más cercana al sistema editorial actual del sitio; la menos "noche de disco".</p>
+</section>
+
+
+
+
+</main>
+<footer><div>Av. Valparaíso 65 · Viña del Mar</div><div>Prototipo estático · design/prototipos-reservas</div></footer>
+</body>
+</html>

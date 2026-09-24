@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Prototipo D · Noche neón (paleta del logo) — Viña Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="_sitio-base.css">
+<style>
+/* DIRECCIÓN D · NOCHE NEÓN — el sitio entero con la paleta muestreada del letrero.
+   Los tokens conservan los nombres que ya usa la app: al remapearlos, todo el sitio cambia junto. */
+:root{
+  --wall:#0b0912;        /* muro (dominante #00000a / oscuros #0f0b15) */
+  --wall-deep:#050408;   /* pozos, footer */
+  --wall-soft:#151122;   /* paneles y ventanas */
+  --paper:#0b0912;       /* remap: fondo de página */
+  --paper-deep:#151122;  /* remap: superficies */
+  --ink:#f7f2f8;         /* remap: texto principal */
+  --ink-soft:#b3a7c4;    /* remap: texto secundario */
+  --vermilion:#00b4f7;   /* remap: acento primario = cian del letrero (45% del neón) */
+  --vermilion-dark:#7fe4ff;
+  --acid:#f5cf00;        /* remap: destacados = oro de las letras */
+  --blue:#25102f;        /* remap: bloque de contacto (violeta profundo del muro) */
+  --night:#050408;
+  --neon-cyan:#00b4f7;
+  --neon-pink:#f0308c;
+  --line:#2b2242;
+  --logo-blend:screen;
+}
+body{background:var(--wall)}
+/* El muro: derrames de neón y trama de luces en lugar del papel con puntitos. */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 70% at 12% 0%,color-mix(in srgb,var(--neon-pink) 11%,transparent),transparent 55%),radial-gradient(90% 60% at 92% 8%,color-mix(in srgb,var(--neon-cyan) 10%,transparent),transparent 60%),repeating-linear-gradient(115deg,transparent 0 122px,color-mix(in srgb,var(--neon-cyan) 5%,transparent) 123px 125px)}
+.topbar,main,footer{position:relative;z-index:1}
+/* Ajustes mínimos: los componentes que asumían papel claro, ahora sobre el muro. */
+.topbar{border-bottom:3px solid var(--neon-cyan)}
+.hero{border-bottom-color:var(--line)}
+.context,.cartelera,.letrero,footer{border-color:var(--line)}
+.hero h1 strong{color:var(--neon-cyan)}
+.context h1 strong,.cartelera-head h2 strong{color:var(--neon-pink)}
+.hero::before{opacity:.3}
+.btn{border-color:var(--line);background:var(--neon-cyan);color:var(--wall);box-shadow:5px 5px 0 var(--neon-pink)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--neon-cyan)}
+.top-cta{border-color:var(--night);background:var(--neon-cyan);color:var(--wall)}
+.postcard{border-color:var(--line);box-shadow:8px 8px 0 var(--neon-cyan)}
+.postcard:nth-child(even){box-shadow:8px 8px 0 var(--neon-pink)}
+.postcard .foot{background:color-mix(in srgb,var(--wall-deep) 92%,transparent)}
+.panel{box-shadow:9px 9px 0 var(--neon-cyan)}
+.cal-cell{background:color-mix(in srgb,var(--wall-soft) 80%,transparent);border-color:var(--line)}
+.cal-head span{color:var(--ink-soft)}
+.cal-cell.full{background:color-mix(in srgb,var(--neon-pink) 12%,transparent);color:var(--ink-soft)}
+.slot{background:color-mix(in srgb,var(--wall-soft) 72%,transparent);border-color:var(--line)}
+.slot:hover:not(:disabled){background:color-mix(in srgb,var(--neon-cyan) 18%,transparent)}
+.field{background:color-mix(in srgb,var(--wall-soft) 72%,transparent);border-color:var(--line);color:var(--vermilion-dark)}
+.field input{color:var(--ink)}
+.field input::placeholder{color:var(--ink-soft)}
+.reserve-btn{background:var(--neon-cyan);color:var(--wall);box-shadow:4px 4px 0 var(--neon-pink)}
+.notice{background:color-mix(in srgb,var(--acid) 92%,transparent);color:var(--night);border-color:var(--night)}
+.contacto{background:var(--blue);border-top-color:var(--line)}
+.mapcard{border-color:var(--line);background:var(--wall-deep)}
+.decision{border-color:var(--line);background:transparent}
+.decision h3{color:var(--acid)}
+.decision b{color:var(--neon-cyan)}
+.proto{border-bottom-color:var(--neon-cyan)}
+/* Texto oscuro sobre los rellenos de oro/cian: con la paleta del logo el "ink" es claro,
+   así que cada relleno saturado necesita su propio color de texto. */
+.cal-nav button{color:var(--night)}
+.cal-nav button:hover:not(:disabled){background:var(--neon-pink);color:var(--ink)}
+.cal-cell.active .cal-cupos{color:var(--night)}
+.cal-cell.active .cal-bar{background:color-mix(in srgb,var(--night) 45%,transparent)}
+.cal-cell.active .cal-bar i{background:var(--night)}
+.slot.active .slot-range{color:color-mix(in srgb,var(--night) 78%,transparent)}
+.slot.active .slot-cupos{color:var(--night)}
+.tick{color:var(--night)}
+.postcard .mark{color:var(--night)}
+.hero-stamp{box-shadow:0 0 60px color-mix(in srgb,var(--acid) 18%,transparent)}
+
+</style>
+</head>
+<body>
+<header class="proto">
+  <b>Prototipo D · Noche neón</b>
+  <p>El <em>sitio completo</em> con la paleta muestreada del letrero: muro negro violáceo, cian primario (45% del neón del logo), magenta secundario y oro de las letras. Los nombres de los tokens son los mismos que ya usa la app, así que esto se aplica a todo cambiando un bloque.</p>
+  <nav>
+    <a href="index.html">Índice</a>
+    <a href="paleta-logo.html">Paleta</a>
+    <a href="direccion-a.html">A</a>
+    <a href="direccion-b.html">B</a>
+    <a href="direccion-c.html">C</a>
+    <a href="direccion-d.html" aria-current="true">D</a>
+  </nav>
+</header>
+<div class="topbar">
+  <a class="brand" href="#"><span class="crown">♛</span>Viña<br>Stage</a>
+  <nav class="nav"><a href="#eventos">Cartelera</a><a href="#reservas">Reservas</a><a href="#contacto">Contacto</a></nav>
+  <a class="top-cta" href="#dia">Reservar cupo</a>
+</div>
+<main>
+<section class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Centro de eventos · Viña del Mar</p>
+    <h1>Música, amigos<br><strong>y buena onda.</strong></h1>
+    <p>Conciertos, lanzamientos, celebraciones y reserva de espacios en Av. Valparaíso 65. Tres pisos, tres ambientes, una noche que puede empezar con una canción.</p>
+    <div class="hero-actions">
+      <a class="btn" href="#reservas">Reservar cupo <span aria-hidden="true">↓</span></a>
+      <a class="btn ghost" href="#contacto">Cómo llegar</a>
+    </div>
+  </div>
+  <div class="hero-stamp" aria-hidden="true"><span>Desde</span><b>2019</b><span>Viña del Mar</span></div>
+</section>
+<section class="cartelera" id="eventos">
+  <div class="cartelera-head">
+    <div><p class="eyebrow">Cartelera / 01</p><h2>Lo que pasa<br><strong>en stage</strong></h2></div>
+    <p>Una noche puede empezar con una canción, una risa o una idea que se te ocurra después.</p>
+  </div>
+  <div class="track">
+    <article class="postcard"><img src="../../public/flyers/live-session.jpg" alt="Live Session: música en vivo" width="900" height="1159"><span class="mark">LIVE</span><div class="foot">Próximamente · música en vivo</div></article>
+    <article class="postcard"><img src="../../public/flyers/stage-comedy.jpg" alt="Stage Comedy: comedia en vivo" width="900" height="1087"><span class="mark">COMEDY</span><div class="foot">Próximamente · comedia en vivo</div></article>
+    <article class="postcard"><img src="../../public/flyers/night-stage.jpg" alt="Night Stage: noche de eventos" width="900" height="1091"><span class="mark">NIGHT</span><div class="foot">Próximamente · noche de eventos</div></article>
+    <article class="postcard"><img src="../../public/flyers/stage-up.jpg" alt="Stage Up: experiencias en vivo" width="900" height="1117"><span class="mark">STAGE</span><div class="foot">Próximamente · experiencias en vivo</div></article>
+  </div>
+</section>
+<section class="letrero" id="reservas">
+  <h2 class="sr-only">Reserva tu cupo para la Promo Estudiante Viña Stage</h2>
+  <p class="letrero-tag">02 · Reservas · Promo Estudiante</p>
+  <div class="signo"><img src="../../public/flyers/logo%20stage.png" alt="" width="1165" height="610"></div>
+  <div class="letrero-grid">
+    <figure class="poster"><img src="../../public/flyers/reservas.png" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736"></figure>
+    <div>
+      <ul class="facts">
+        <li>📅 Lunes a viernes</li>
+        <li>🕐 14:00 a 20:00 Hrs.</li>
+        <li>⚠️ Solo 60 cupos diarios</li>
+        <li>🎓 TNE vigente</li>
+      </ul>
+      <a class="cta" href="#dia">Reserva tu cupo <span aria-hidden="true">↓</span></a>
+      <p class="note">Elige día y horario, completa tus datos y confirma tu reserva. Muestra tu código y tu TNE vigente al llegar a Viña Stage.</p>
+    </div>
+  </div>
+  <div class="luces" id="dia">
+    <div class="panel day-panel">
+      <div class="section-title">Selecciona un día</div>
+      <div class="cal-nav"><button type="button" aria-label="Mes anterior">‹</button><strong>Septiembre 2026</strong><button type="button" aria-label="Mes siguiente" disabled>›</button></div>
+      <div class="cal-head"><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span></div>
+      <div class="cal-grid">
+        <span class="cal-cell empty" aria-hidden="true"></span>
+        <button class="cal-cell" type="button"><span class="cal-day">1</span><span class="cal-cupos">8/60</span><span class="cal-bar"><i style="width:13%"></i></span></button>
+        <button class="cal-cell" type="button"><span class="cal-day">2</span><span class="cal-cupos">24/60</span><span class="cal-bar"><i style="width:40%"></i></span></button>
+        <button class="cal-cell" type="button"><span class="cal-day">3</span><span class="cal-cupos">31/60</span><span class="cal-bar"><i style="width:52%"></i></span></button>
+        <button class="cal-cell" type="button"><span class="cal-day">4</span><span class="cal-cupos">47/60</span><span class="cal-bar"><i style="width:78%"></i></span></button>
+        <button class="cal-cell" type="button"><span class="cal-day">7</span><span class="cal-cupos">12/60</span><span class="cal-bar"><i style="width:20%"></i></span></button>
+        <button class="cal-cell" type="button"><span class="cal-day">8</span><span class="cal-cupos">35/60</span><span class="cal-bar"><i style="width:58%"></i></span></button>
+        <button class="cal-cell full" type="button" disabled><span class="cal-day">9</span><span class="cal-cupos">60/60</span><span class="cal-bar"><i style="width:100%"></i></span></button>
+        <button class="cal-cell active" type="button" aria-pressed="true"><span class="cal-day">10</span><span class="cal-cupos">38/60</span><span class="cal-bar"><i style="width:63%"></i></span></button>
+        <button class="cal-cell off" type="button" disabled><span class="cal-day">11</span><span class="cal-cupos">—</span></button>
+      </div>
+      <p class="cal-note">Reservas desde <b>1 de septiembre</b> · agenda abierta hasta <b>30 de septiembre</b> · 3 bloques de 2 horas por día.</p>
+    </div>
+    <div class="panel schedule-panel">
+      <div class="schedule-heading"><h2>Bloques disponibles <span>•</span> <strong>Miércoles 10 de septiembre</strong></h2><div>3 bloques de 2 horas · Cupos del día: <b>38/60</b></div></div>
+      <div class="slots">
+        <button class="slot active" type="button" aria-pressed="true"><strong>BLOQUE 1 · 14:00</strong><span class="slot-range">14:00 a 16:00 Hrs.</span><span class="slot-cupos">12 cupos disponibles</span><span class="tick">✓</span></button>
+        <button class="slot full" type="button" disabled><strong>BLOQUE 2 · 16:00</strong><span class="slot-range">16:00 a 18:00 Hrs.</span><span class="slot-cupos">0 cupos disponibles</span></button>
+        <button class="slot" type="button"><strong>BLOQUE 3 · 18:00</strong><span class="slot-range">18:00 a 20:00 Hrs.</span><span class="slot-cupos">26 cupos disponibles</span></button>
+      </div>
+    </div>
+    <div class="panel form-panel">
+      <div class="section-title">Completa tus datos</div>
+      <p class="slot-chosen">Bloque elegido: <b>Bloque 1 · 14:00 a 16:00 Hrs.</b> · Miércoles 10 de septiembre</p>
+      <form onsubmit="return false">
+        <div class="form-grid">
+          <label class="field"><span aria-hidden="true">♙</span><input placeholder="Nombre *" autocomplete="given-name"></label>
+          <label class="field"><span aria-hidden="true">♙</span><input placeholder="Apellido *" autocomplete="family-name"></label>
+          <label class="field"><span aria-hidden="true">⌕</span><input placeholder="WhatsApp *" inputmode="tel" autocomplete="tel"></label>
+          <label class="field"><span aria-hidden="true">✉</span><input type="email" placeholder="Email (opcional)" autocomplete="email"></label>
+        </div>
+        <label class="consent"><input type="checkbox" checked><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label>
+        <button class="reserve-btn" type="submit">▣ Reservar cupo</button>
+      </form>
+    </div>
+  </div>
+</section>
+<section class="contacto" id="contacto">
+  <div>
+    <p class="eyebrow">Contacto</p>
+    <h2>Encéntranos<br><strong>en viña.</strong></h2>
+    <p>Av. Valparaíso 65<br>Viña del Mar, Chile</p>
+    <a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">Ver en mapa ↗</a>
+  </div>
+  <div class="mapcard"><small>Ubicación</small><b>Av. Valparaíso 65</b><p>En pleno centro de Viña del Mar. Tres pisos, tres ambientes.</p></div>
+</section>
+<section class="decision">
+  <h3>Qué cambia con D · Noche neón</h3>
+  <ul>
+    <li>Ya no hay <b>sección oscura dentro de una web clara</b>: la web entera es el muro del letrero y los flyers de la cartelera dejan de chocar.</li>
+    <li>El <b>cian</b> es acción (CTA, día elegido, bloque elegido) y el <b>magenta</b> es acento (sombras alternas, destacados); el <b>oro</b> queda para el precio y los badges.</li>
+    <li>El calendario son <b>ventanas encendidas</b>: paneles un escalón más claros que el muro (#151122 sobre #0b0912).</li>
+    <li>Riesgo: sin el letrero a la vista, la web es "una disco más". El logo tiene que seguir siendo el protagonista de la sección.</li>
+  </ul>
+  <p>Compará con la paleta actual abriendo <b>paleta-logo.html</b>, y con las direcciones A/B/C para ver el mismo contenido en papel.</p>
+</section>
+
+
+
+</main>
+<footer><div>Av. Valparaíso 65 · Viña del Mar</div><div>Prototipo estático · design/prototipos-reservas</div></footer>
+</body>
+</html>

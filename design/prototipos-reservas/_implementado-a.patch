@@ -1,0 +1,367 @@
+diff --git a/src/App.vue b/src/App.vue
+index 49696a9..02de074 100644
+--- a/src/App.vue
++++ b/src/App.vue
+@@ -1,97 +1,179 @@
+ <script setup>
+ import { computed, onMounted, onUnmounted, ref } from 'vue';
+ import AdminPanel from './AdminPanel.vue';
+-import { DEMO_ON, demoLoad, demoReserve } from './demo';
++import { DEMO_ON, demoDaySlots, demoLoad, demoRange, demoReserve } from './demo';
++import { bloqueInfo } from './blocks';
+ 
+ const API=import.meta.env.VITE_API_BASE_URL||'/api';
+ const hashTick=ref(0);
+-const route=computed(()=>{void hashTick.value;return window.location.hash||'#inicio'});
++const route=computed(()=>{void hashTick.value;return window.location.hash||'#eventos'});
+ const showAdmin=computed(()=>route.value.startsWith('#/admin'));
+-function onHash(){hashTick.value++}
++function onHash(){hashTick.value++;menuOpen.value=false}
++// Cierra el menú al hacer scroll (móvil)
++let scrollClose='';
++onMounted(()=>{scrollClose=()=>{if(menuOpen.value)menuOpen.value=false};window.addEventListener('scroll',scrollClose,{passive:true})})
++onUnmounted(()=>{if(scrollClose)window.removeEventListener('scroll',scrollClose)})
+ const siteSettings=ref({site_name:'Viña Stage',hero_title:'VIÑA STAGE',booking_notice:''});
+ const demoMode=ref(false);
+-async function loadSettings(){if(demoMode.value){try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(e){}return}try{const r=await fetch(`${API}/public_settings.php`);if(!r.ok)return;const x=await r.json();siteSettings.value={...siteSettings.value,...(x.settings||{})}}catch(e){}}
++async function loadSettings(){if(demoMode.value){try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(e){}return}try{const r=await fetch(`${API}/public_settings.php`);const x=await r.json();if(!x.settings)throw Error('sin settings');siteSettings.value={...siteSettings.value,...(x.settings||{})}}catch(e){if(DEMO_ON){demoMode.value=true;try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(e2){}}}}
+ const bookingOpen=computed(()=>siteSettings.value.booking_enabled!=='0');
+ 
+ const names=['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES'];
+-const days=ref([]),selectedDay=ref(0),selectedSlot=ref(0),loading=ref(true),saving=ref(false),error=ref('');
+-const form=ref({nombre:'',apellido:'',whatsapp:'',email:'',consent:true}),confirmation=ref('');
+-const carouselIndex=ref(0);
+-let carouselTimer=null;
+-
++const WEEK=['LUN','MAR','MIÉ','JUE','VIE'];
++const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
++const avail=ref({}),selectedDate=ref(''),selectedSlot=ref(0),loading=ref(true),dayLoading=ref(false),saving=ref(false),error=ref('');
++const cal=ref({y:new Date().getFullYear(),m:new Date().getMonth()});
++const day=ref({date:'',name:'',slots:[],used:0,total:0});
++const form=ref({nombre:'',apellido:'',whatsapp:'',email:'',consent:true}),confirmation=ref(''),lastReservation=ref(null);
++const formErrors=ref({});
++const carouselHeld=ref(false);
++const menuOpen=ref(false);
+ const events=[
+   {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE',image:'flyers/live-session.jpg'},
+   {id:2,date:'PRÓXIMAMENTE',title:'STAGE COMEDY',type:'COMEDIA EN VIVO',tone:'orange',mark:'COMEDY',image:'flyers/stage-comedy.jpg'},
+   {id:3,date:'PRÓXIMAMENTE',title:'NIGHT STAGE',type:'NOCHE DE EVENTOS',tone:'violet',mark:'NIGHT',image:'flyers/night-stage.jpg'},
+   {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE',image:'flyers/stage-up.jpg'}
+ ];
+-
+-const activeEvents=computed(()=>events.map((_,i)=>events[(carouselIndex.value+i)%events.length]));
+-
+-function startCarousel(){if(carouselTimer)return;carouselTimer=setInterval(()=>{carouselIndex.value=(carouselIndex.value+1)%events.length},4200)}
+-function stopCarousel(){if(carouselTimer){clearInterval(carouselTimer);carouselTimer=null}}
+-function setEvent(i){stopCarousel();carouselIndex.value=(carouselIndex.value+i+events.length)%events.length;startCarousel()}
++const marqueeEvents=[...events,...events];
++function holdCarousel(e){carouselHeld.value=true;try{const t=e.currentTarget;if(t&&t.setPointerCapture&&e.pointerId!=null)t.setPointerCapture(e.pointerId)}catch(_){}}
++function releaseCarousel(){carouselHeld.value=false}
+ 
+ const pad=n=>String(n).padStart(2,'0');
+ function iso(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+-function nextDays(){const out=[],now=new Date();now.setHours(12,0,0,0);for(let i=0;i<14&&out.length<5;i++){const d=new Date(now);d.setDate(now.getDate()+i);if(d.getDay()>=1&&d.getDay()<=5)out.push({date:iso(d),name:names[d.getDay()-1]})}return out}
+-function selectDay(i){selectedDay.value=i;selectedSlot.value=0;confirmation.value=''}
++function dayName(date){const w=new Date(date+'T12:00:00').getDay();return names[w-1]||''}
++function fechaCorta(v){return v?`${v.slice(8,10)}-${v.slice(5,7)}-${v.slice(0,4)}`:''}
++function firstOfMonth(y,m){return iso(new Date(y,m,1))}
++function firstOfNextMonth(y,m){return iso(new Date(y,m+1,1))}
++function maxISO(){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+60);return iso(d)}
++// Calendario: Lun-Vie del mes visible; la fecha mínima es max(hoy, booking_start_date).
++const startISO=computed(()=>{const v=siteSettings.value.booking_start_date;return /^\d{4}-\d{2}-\d{2}$/.test(v||'')?v:''});
++const minISO=computed(()=>{const t=iso(new Date());return startISO.value&&startISO.value>t?startISO.value:t});
++const startLabel=computed(()=>fechaCorta(startISO.value));
++const monthLabel=computed(()=>`${MESES[cal.value.m]} ${cal.value.y}`);
++const cells=computed(()=>{const y=cal.value.y,m=cal.value.m,last=new Date(y,m+1,0).getDate(),out=[];
++  const lead=(new Date(y,m,1).getDay()+6)%7;
++  for(let i=0;i<lead;i++)out.push({empty:true,key:'e'+i});
++  for(let d=1;d<=last;d++){const dt=new Date(y,m,d),wd=dt.getDay();if(wd===0||wd===6)continue;
++    const date=iso(dt),a=avail.value[date]||{};
++    out.push({key:date,date,d:pad(d),name:names[wd-1],short:WEEK[wd-1],dateShort:`${pad(d)}/${pad(m+1)}`,total:a.total||0,used:a.used||0,available:a.available||0,bookable:!!a.bookable});}
++  while(out.length%5!==0)out.push({empty:true,key:'p'+out.length});
++  return out})
++const canPrev=computed(()=>firstOfMonth(cal.value.y,cal.value.m)>firstOfMonth(Number(minISO.value.slice(0,4)),Number(minISO.value.slice(5,7))-1));
++const canNext=computed(()=>firstOfNextMonth(cal.value.y,cal.value.m)<=maxISO());
++function moveMonth(step){const d=new Date(cal.value.y,cal.value.m+step,1);cal.value={y:d.getFullYear(),m:d.getMonth()};selectedDate.value='';loadMonth()}
++function gotoMin(){const p=minISO.value.split('-');cal.value={y:Number(p[0]),m:Number(p[1])-1}}
+ function selectSlot(i){selectedSlot.value=i;confirmation.value=''}
+-async function load(){loading.value=true;error.value='';try{days.value=await Promise.all(nextDays().map(async d=>{const r=await fetch(`${API}/availability.php?date=${d.date}`);if(!r.ok)throw Error('No se pudo consultar disponibilidad');const x=await r.json();const slots=x.slots||[];return {...d,slots,used:slots.reduce((n,s)=>n+(s.reserved||0),0),total:slots.reduce((n,s)=>n+(s.capacity||0),0)}}));demoMode.value=false;const firstAvailable=days.value.findIndex(d=>d.slots.some(s=>s.available>0));selectedDay.value=firstAvailable>=0?firstAvailable:0;selectedSlot.value=0}catch(e){if(!DEMO_ON)throw e;demoMode.value=true;error.value='';try{const dd=demoLoad();siteSettings.value={...siteSettings.value,...dd.settings}}catch(se){}days.value=demoLoad().days.map(d=>{const slots=d.slots.filter(s=>s.active!==0).map(s=>({slot_id:s.id,start_time:s.start,end_time:s.end,capacity:s.capacity,reserved:s.reserved||0,available:Math.max(0,s.capacity-(s.reserved||0))}));return {date:d.date,name:d.dayName||d.label,slots,used:slots.reduce((n,s)=>n+s.reserved,0),total:slots.reduce((n,s)=>n+s.capacity,0)}});selectedDay.value=0;selectedSlot.value=0}finally{loading.value=false}}
+-const day=computed(()=>days.value[selectedDay.value]||{name:'',slots:[],used:0,total:0});
++function selectDay(date,keepConfirm){if(!date||!avail.value[date])return;selectedDate.value=date;selectedSlot.value=0;if(!keepConfirm)confirmation.value='';loadDay(date,keepConfirm)}
++async function loadMonth(preserve){
++  loading.value=true;error.value='';
++  const from=firstOfMonth(cal.value.y,cal.value.m),to=iso(new Date(cal.value.y,cal.value.m+1,0));
++  try{
++    const r=await fetch(`${API}/availability_range.php?from=${from}&to=${to}`);
++    if(!r.ok)throw Error(`Error del servidor (${r.status})`);
++    const x=await r.json();
++    if(!Array.isArray(x.days))throw Error('Respuesta inválida de disponibilidad');
++    const map={};for(const d of (x.days||[]))map[d.date]=d;
++    avail.value=map;demoMode.value=false;
++  }catch(e){
++    if(!DEMO_ON){error.value=e.message}
++    else{demoMode.value=true;try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(se){}
++      const map={};for(const d of demoRange(from,to,minISO.value,iso(new Date())))map[d.date]=d;avail.value=map}
++  }
++  const firstBookable=cells.value.find(c=>!c.empty&&c.bookable);
++  const keep=selectedDate.value&&avail.value[selectedDate.value]&&avail.value[selectedDate.value].bookable?selectedDate.value:'';
++  if(keep)selectDay(keep,preserve);else if(firstBookable)selectDay(firstBookable.date,preserve);
++  else{selectedDate.value='';day.value={date:'',name:'',slots:[],used:0,total:0};selectedSlot.value=0}
++  loading.value=false;
++}
++async function loadDay(date,keepConfirm){
++  const a=avail.value[date]||{};
++  day.value={date,name:dayName(date),slots:[],used:a.used||0,total:a.total||0};
++  selectedSlot.value=0;if(!keepConfirm)confirmation.value='';dayLoading.value=true;
++  if(demoMode.value)day.value={...day.value,slots:demoDaySlots(date)};
++  else try{
++    const r=await fetch(`${API}/availability.php?date=${date}`);
++    if(!r.ok)throw Error(`Error del servidor (${r.status})`);
++    const x=await r.json();
++    if(!Array.isArray(x.slots))throw Error('Respuesta inválida de disponibilidad');
++    day.value={...day.value,slots:x.slots||[]};
++  }catch(e){
++    if(!DEMO_ON)error.value=e.message;
++    else{demoMode.value=true;day.value={...day.value,slots:demoDaySlots(date)}}
++  }
++  dayLoading.value=false;
++  const i=day.value.slots.findIndex(s=>s.available>0);selectedSlot.value=i>=0?i:0;
++}
+ const slot=computed(()=>day.value.slots[selectedSlot.value]);
++const slotsBloques=computed(()=>(day.value.slots||[]).map(s=>({...s,...bloqueInfo(s.start_time,s.end_time)})));
++const bloqueSel=computed(()=>bloqueInfo(slot.value&&slot.value.start_time,slot.value&&slot.value.end_time));
++const bloquesDelDia=computed(()=>(day.value.slots||[]).length);
+ function pct(d){return d.total?Math.round(d.used/d.total*100):0}
+-const hasAvailability=computed(()=>days.value.some(d=>d.slots.some(s=>s.available>0)));
+-async function reserve(){if(saving.value||loading.value)return;if(!form.value.nombre||!form.value.apellido||!form.value.whatsapp||!slot.value)return;const digits=form.value.whatsapp.replace(/[\s\-.()]/g,'');if(!/^\+?\d{8,15}$/.test(digits)){error.value='WhatsApp inválido (8 a 15 dígitos)';return}if(form.value.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())){error.value='Email inválido';return}saving.value=true;error.value='';confirmation.value='';try{if(demoMode.value){confirmation.value=demoReserve(day.value.date,slot.value.slot_id,{nombre:form.value.nombre,apellido:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email});form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await load();return}const r=await fetch(`${API}/reservations.php`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:day.value.date,slotId:slot.value.slot_id,firstName:form.value.nombre,lastName:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email,whatsappConsent:form.value.consent})});const x=await r.json().catch(()=>({}));if(!r.ok)throw Error(x.error||'No fue posible crear la reserva');confirmation.value=x.reservation.reservation_code;form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await load()}catch(e){error.value=e.message||'No fue posible crear la reserva'}finally{saving.value=false}}
+-onMounted(()=>{load();loadSettings();startCarousel();window.addEventListener('hashchange',onHash)});
+-onUnmounted(()=>{stopCarousel();window.removeEventListener('hashchange',onHash)});
++const hasAvailability=computed(()=>day.value.slots.some(s=>s.available>0));
++async function reserve(){if(saving.value||loading.value||dayLoading.value)return;if(!form.value.nombre||!form.value.apellido||!form.value.whatsapp||!slot.value)return;const digits=form.value.whatsapp.replace(/[\s\-.()]/g,'');if(!/^\+?\d{8,15}$/.test(digits)){error.value='WhatsApp inválido (8 a 15 dígitos)';return}if(form.value.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())){error.value='Email inválido';return}saving.value=true;error.value='';confirmation.value='';lastReservation.value=null;try{if(demoMode.value){confirmation.value=demoReserve(day.value.date,slot.value.slot_id,{nombre:form.value.nombre,apellido:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email},slot.value);lastReservation.value={code:confirmation.value,date:day.value.date,day:day.value.name,start:slot.value.start_time,end:slot.value.end_time,name:`${form.value.nombre} ${form.value.apellido}`,bloque:bloqueInfo(slot.value.start_time,slot.value.end_time).nombre};form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await loadMonth(true);return}const r=await fetch(`${API}/reservations.php`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:day.value.date,slotId:slot.value.slot_id,firstName:form.value.nombre,lastName:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email,whatsappConsent:form.value.consent})});const x=await r.json().catch(()=>({}));if(!r.ok||!x.reservation)throw Error(x.error||'No fue posible crear la reserva');confirmation.value=x.reservation.reservation_code;lastReservation.value={code:confirmation.value,date:day.value.date,day:day.value.name,start:slot.value.start_time,end:slot.value.end_time,name:`${form.value.nombre} ${form.value.apellido}`,bloque:bloqueInfo(slot.value.start_time,slot.value.end_time).nombre};form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await loadMonth(true)}catch(e){error.value=e.message||'No fue posible crear la reserva'}finally{saving.value=false}}
++onMounted(async()=>{await loadSettings();gotoMin();await loadMonth();window.addEventListener('hashchange',onHash)});
++onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
+ </script>
+ 
+ <template>
+ <AdminPanel v-if="showAdmin" />
+ <div v-else class="site">
+ <header class="topbar">
+-  <a class="brand" href="#inicio" aria-label="Viña Stage inicio"><span class="crown">♛</span><span>VIÑA<br>STAGE</span></a>
+-  <nav class="nav"><a href="#inicio">INICIO</a><a href="#eventos">EVENTOS</a><a href="#reservas">RESERVAS</a><a href="#contacto">CONTACTO</a></nav>
+-  <a class="top-cta" href="#reservas">RESERVAR</a>
+-  <button class="menu" aria-label="Menú"><span/><span/><span/></button>
++  <a class="brand" href="#eventos" aria-label="Viña Stage inicio"><span class="crown">♛</span><span>VIÑA<br>STAGE</span></a>
++  <nav id="mainnav" class="nav" :class="{open:menuOpen}">
++    <a href="#eventos" @click="menuOpen=false">INICIO</a>
++    <a href="#eventos" @click="menuOpen=false">EVENTOS</a>
++    <a href="#reservas" @click="menuOpen=false">RESERVAS</a>
++    <a href="#contacto" @click="menuOpen=false">CONTACTO</a>
++    <a class="top-cta" href="#reservas" @click="menuOpen=false">RESERVAR</a>
++  </nav>
++  <button class="menu" :class="{open:menuOpen}" :aria-expanded="menuOpen?'true':'false'" aria-controls="mainnav" aria-label="Menú" @click="menuOpen=!menuOpen" @keyup.enter.space="menuOpen=!menuOpen"><span/><span/><span/></button>
++  <transition name="fade"><div v-if="menuOpen" class="mobile-overlay" @click="menuOpen=false" aria-hidden="true"></div></transition>
+ </header>
+ 
+ <main>
+-<section id="inicio" class="hero landing-hero">
+-  <div class="hero-glow"></div><div class="hero-content">
+-    <p class="eyebrow">AV. VALPARAÍSO 65 · VIÑA DEL MAR</p>
+-    <h1>VIÑA<br><strong>STAGE</strong></h1>
+-    <p class="hero-copy">Música, eventos y noches para vivir Viña desde el centro de la ciudad.</p>
+-    <div class="hero-actions"><a class="primary-btn" href="#eventos">VER EVENTOS <span>↘</span></a><a class="ghost-btn" href="#reservas">RESERVAR CUPO</a></div>
+-  </div>
+-  <div class="hero-stamp"><span>LIVE</span><strong>STAGE</strong><small>VIÑA DEL MAR</small></div>
+-</section>
+-
+ <section id="eventos" class="events-section">
+-  <div class="section-head"><div><p class="eyebrow">CARTELERA</p><h2>LO QUE PASA<br><strong>EN STAGE</strong></h2></div><div class="carousel-controls"><button type="button" aria-label="Evento anterior" @click="setEvent(-1)">←</button><button type="button" aria-label="Evento siguiente" @click="setEvent(1)">→</button></div></div>
+-  <div class="event-stage" @mouseenter="stopCarousel" @mouseleave="startCarousel">
+-    <div v-for="(event,i) in activeEvents" :key="event.id+'-'+i" :class="['event-card',{front:i===0},event.tone]" :style="{ '--stack': i }">
+-      <img v-if="event.image" :src="event.image" :alt="event.title" class="flyer-img" loading="lazy" @error="event.image=''" />
+-      <div class="flyer-noise"></div><span class="flyer-mark">{{event.mark}}</span><div class="flyer-content"><small>{{event.date}}</small><h3>{{event.title}}</h3><p>{{event.type}}</p></div><div class="flyer-footer">VIÑA STAGE · AV. VALPARAÍSO 65</div>
++  <div class="section-head"><div><p class="eyebrow">CARTELERA / 01</p><h2>LO QUE PASA<br><strong>EN STAGE</strong></h2></div><p class="section-dek">Una noche puede empezar con una canción, una risa o una idea que se te ocurra después.</p><span class="section-index" aria-hidden="true">01<br><b>PROGRAMACIÓN</b></span></div>
++  <div class="event-stage" :class="{held:carouselHeld}" role="region" aria-roledescription="carrusel" aria-label="Cartelera de eventos" @pointerdown="holdCarousel" @pointerup="releaseCarousel" @pointercancel="releaseCarousel" @pointerleave="releaseCarousel" @dragstart.prevent @contextmenu.prevent>
++    <div class="event-track">
++      <article v-for="(event,i) in marqueeEvents" :key="event.id+'-'+i" :class="['event-card',event.tone]">
++        <img v-if="event.image" :src="event.image" :alt="event.title" class="flyer-img" loading="lazy" draggable="false" @error="event.image=''" />
++        <div class="flyer-noise"></div><span class="flyer-mark">{{event.mark}}</span><div class="flyer-content"><small>{{event.date}}</small><h3>{{event.title}}</h3><p>{{event.type}}</p></div><div class="flyer-footer">VIÑA STAGE · AV. VALPARAÍSO 65</div>
++      </article>
+     </div>
+   </div>
+-  <div class="event-meta"><div><span class="live-dot"></span> CARTELERA EN MOVIMIENTO</div><div class="dots"><button v-for="(_,i) in events" :key="i" type="button" :class="{active:i===carouselIndex}" :aria-label="'Ir al evento '+(i+1)" @click="setEvent(i-carouselIndex)">0{{i+1}}</button></div></div>
+-</section>
+-
+-<section class="experience-section">
+-  <div class="experience-copy"><p class="eyebrow">LA EXPERIENCIA</p><h2>DONDE LA NOCHE<br><strong>TOMA EL ESCENARIO.</strong></h2><p>Un punto de encuentro en pleno centro de Viña del Mar para disfrutar música, eventos y buena compañía.</p><a href="#contacto" class="text-link">CONÓCENOS <span>→</span></a></div>
+-  <div class="experience-grid"><article><b>01</b><span>♪</span><h3>MÚSICA</h3><p>Sonido y escenario para noches en vivo.</p></article><article><b>02</b><span>✦</span><h3>EVENTOS</h3><p>Una cartelera que cambia y se mueve.</p></article><article><b>03</b><span>◉</span><h3>ENCUENTRO</h3><p>Un espacio para venir, quedarse y compartir.</p></article><article><b>04</b><span>↗</span><h3>CENTRO</h3><p>Av. Valparaíso 65, Viña del Mar.</p></article></div>
++  <div class="event-meta"><div><span class="live-dot"></span> {{carouselHeld ? 'CARTELERA DETENIDA · SUELTA PARA CONTINUAR' : 'CARTELERA EN MOVIMIENTO · MANTÉN PRESIONADO PARA DETENER'}}</div></div>
+ </section>
+ 
+ <section id="reservas" class="reservation-section">
+-  <div class="reservation-intro"><p class="eyebrow">RESERVAS</p><h2>RESERVA<br><strong>TU CUPO</strong></h2><p>Selecciona el día y horario, completa tus datos y asegura tu lugar.</p><p v-if="siteSettings.booking_notice" class="booking-notice">{{siteSettings.booking_notice}}</p></div>
++  <!-- Reservas: el letrero de neón manda; el calendario viene justo debajo. -->
++  <div class="reservation-intro stage-hero">
++    <h2 class="sr-only">Reserva tu cupo para la Promo Estudiante Viña Stage</h2>
++    <p class="stage-hero-tag"><span aria-hidden="true">02</span> Reservas · Promo Estudiante</p>
++    <div class="stage-hero-sign">
++      <img class="stage-hero-logo" :src="'flyers/logo%20stage.png'" alt="" width="1165" height="610" loading="lazy" decoding="async">
++    </div>
++    <div class="stage-hero-body">
++      <figure class="stage-hero-poster">
++        <img class="stage-hero-banner" :src="'flyers/reservas.png'" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736" loading="lazy" decoding="async">
++      </figure>
++      <div class="stage-hero-info">
++        <ul class="stage-hero-facts">
++          <li>📅 Lunes a viernes</li>
++          <li>🕐 14:00 a 20:00 Hrs.</li>
++          <li>⚠️ Solo 60 cupos diarios</li>
++          <li>🎓 TNE vigente</li>
++        </ul>
++        <a class="stage-hero-cta" href="#dia">Reserva tu cupo <span aria-hidden="true">↓</span></a>
++        <p class="stage-hero-note">Elige día y horario, completa tus datos y confirma tu reserva. Muestra tu código y tu TNE vigente al llegar a Viña Stage.</p>
++      </div>
++    </div>
++  </div>
+   <div v-if="!bookingOpen" class="notice" role="alert">Reservas pausadas por el momento. {{siteSettings.booking_notice}}</div>
+   <template v-else>
+-  <section class="panel day-panel"><div class="section-title">SELECCIONA UN DÍA</div><div v-if="loading" class="loading-row">Consultando disponibilidad…</div><div v-else class="days"><button v-for="(d,i) in days" :key="d.date" type="button" :class="['day',{active:i===selectedDay}]" :aria-pressed="i===selectedDay" @click="selectDay(i)"><span class="day-name">{{d.name}}</span><small class="day-date">{{d.date}}</small><span class="ring" :style="{'--pct':pct(d)+'%'}"><span class="ring-content">{{d.used}}/{{d.total}}<small>CUPOS</small></span></span></button></div><p v-if="!loading && !hasAvailability" class="empty-note">Sin cupos disponibles en los próximos días. Intenta más tarde.</p></section>
+-  <section class="panel schedule-panel"><div class="schedule-heading"><h2>HORARIOS DISPONIBLES <span>•</span> <strong>{{day.name}}</strong></h2><div>Total del día: <b>{{day.used}}/{{day.total}}</b></div></div><div v-if="loading" class="loading-row">Cargando horarios…</div><div v-else-if="!day.slots.length" class="empty-note">Sin horarios publicados para este día.</div><div v-else class="slots"><button v-for="(s,i) in day.slots" :key="s.slot_id" type="button" :disabled="s.available<=0" :class="['slot',{active:i===selectedSlot}]" :aria-pressed="i===selectedSlot" @click="selectSlot(i)"><strong>{{s.start_time}} - {{s.end_time}}</strong><span>{{s.available}} cupos</span><span v-if="i===selectedSlot" class="tick">✓</span></button></div></section>
+-  <section class="panel form-panel"><div class="section-title">COMPLETA TUS DATOS</div><form @submit.prevent="reserve" novalidate><div class="form-grid"><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.nombre" required minlength="2" maxlength="80" autocomplete="given-name" placeholder="Nombre *"></label><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.apellido" required minlength="2" maxlength="80" autocomplete="family-name" placeholder="Apellido *"></label><label class="field"><span aria-hidden="true">⌕</span><input v-model.trim="form.whatsapp" required inputmode="tel" autocomplete="tel" maxlength="16" placeholder="WhatsApp *"></label><label class="field"><span aria-hidden="true">✉</span><input v-model.trim="form.email" type="email" autocomplete="email" maxlength="160" placeholder="Email (opcional)"></label></div><label class="consent"><input v-model="form.consent" type="checkbox"><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label><button class="reserve-btn" type="submit" :disabled="saving || loading || !slot || (slot && slot.available<=0)"><span aria-hidden="true">▣</span> {{saving?'RESERVANDO...':'RESERVAR CUPO'}}</button></form></section>
+-  <section v-if="confirmation" class="confirmation" role="status"><div class="check">✓</div><div><strong>¡Reserva confirmada!</strong><span>Código de reserva: <b>{{confirmation}}</b></span><span v-if="demoMode">Modo demostración: se guardó en este navegador.</span></div></section>
++  <section id="dia" class="panel day-panel"><div class="section-title">SELECCIONA UN DÍA</div><div class="cal-nav"><button type="button" :disabled="!canPrev" aria-label="Mes anterior" @click="moveMonth(-1)">‹</button><strong>{{monthLabel}}</strong><button type="button" :disabled="!canNext" aria-label="Mes siguiente" @click="moveMonth(1)">›</button></div><div class="cal-head"><span v-for="w in WEEK" :key="w">{{w}}</span></div><div v-if="loading" class="loading-row">Consultando disponibilidad…</div><template v-else><div class="cal-grid"><template v-for="c in cells" :key="c.key"><span v-if="c.empty" class="cal-cell empty" aria-hidden="true"></span><button v-else type="button" :class="['cal-cell',{active:c.date===selectedDate,off:!c.bookable,full:c.available<=0}]" :disabled="!c.bookable" :aria-pressed="c.date===selectedDate" :title="c.bookable?(c.available+' cupos disponibles'):'No disponible'" @click="selectDay(c.date)"><span class="cal-day">{{c.d}}</span><span class="cal-cupos">{{c.bookable?(c.used+'/'+c.total):'—'}}</span><span v-if="c.bookable" class="cal-bar"><i :style="{width:pct(c)+'%'}"></i></span></button></template></div><p v-if="!cells.some(c=>c.bookable)" class="empty-note">Sin días disponibles este mes. Revisa el mes siguiente.</p></template><p class="cal-note"><span v-if="startLabel">Reservas desde <b>{{startLabel}}</b> · </span>agenda abierta hasta <b>{{fechaCorta(maxISO())}}</b> · 3 bloques de 2 horas por día.</p></section>
++  <section class="panel schedule-panel"><div class="schedule-heading"><h2>BLOQUES DISPONIBLES <span>•</span> <strong>{{day.name}} {{fechaCorta(day.date)}}</strong></h2><div>{{bloquesDelDia}} bloque{{bloquesDelDia===1?'':'s'}} de 2 horas · Cupos del día: <b>{{day.used}}/{{day.total}}</b></div></div><div v-if="dayLoading" class="loading-row">Cargando bloques…</div><div v-else-if="!day.slots.length" class="empty-note">Sin bloques publicados para este día.</div><div v-else class="slots"><button v-for="(s,i) in slotsBloques" :key="s.slot_id" type="button" :disabled="s.available<=0" :class="['slot',{active:i===selectedSlot},{full:s.available<=0}]" :aria-pressed="i===selectedSlot" @click="selectSlot(i)"><strong v-if="s.nombre">BLOQUE {{s.n}}<span class="solo-desktop"> · {{s.start_time}}</span></strong><strong v-else>{{s.start_time}} - {{s.end_time}}</strong><span class="slot-range">{{s.rango}}</span><span class="slot-cupos">{{s.available}} cupo{{s.available===1?'':'s'}}<span class="solo-desktop"> disponible{{s.available===1?'':'s'}}</span></span><span v-if="i===selectedSlot" class="tick">✓</span></button></div></section>
++  <section class="panel form-panel"><div class="section-title">COMPLETA TUS DATOS</div><p v-if="slot" class="slot-chosen">Bloque elegido: <b>{{bloqueSel.nombre ? bloqueSel.nombre+' · ' : ''}}{{bloqueSel.rango}}</b> · {{day.name}} {{fechaCorta(day.date)}}</p><form @submit.prevent="reserve" novalidate><div class="form-grid"><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.nombre" required minlength="2" maxlength="80" autocomplete="given-name" placeholder="Nombre *"></label><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.apellido" required minlength="2" maxlength="80" autocomplete="family-name" placeholder="Apellido *"></label><label class="field"><span aria-hidden="true">⌕</span><input v-model.trim="form.whatsapp" required inputmode="tel" autocomplete="tel" maxlength="16" placeholder="WhatsApp *"></label><label class="field"><span aria-hidden="true">✉</span><input v-model.trim="form.email" type="email" autocomplete="email" maxlength="160" placeholder="Email (opcional)"></label></div><label class="consent"><input v-model="form.consent" type="checkbox"><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label><button class="reserve-btn" type="submit" :disabled="saving || loading || dayLoading || !slot || (slot && slot.available<=0)"><span aria-hidden="true">▣</span> {{saving?'RESERVANDO...':'RESERVAR CUPO'}}</button></form></section>
++  <section v-if="confirmation" class="confirmation" role="status"><div class="check">✓</div><div><strong>¡Reserva confirmada!</strong><span v-if="lastReservation">A nombre de <b>{{lastReservation.name}}</b> · <b>{{lastReservation.day}} {{lastReservation.date}}</b> · <b>{{lastReservation.bloque ? lastReservation.bloque+' · ' : ''}}{{lastReservation.start}} a {{lastReservation.end}} Hrs.</b></span><span>Código de reserva: <b>{{confirmation}}</b></span><span>Muestra este código al llegar. Si no puedes asistir, avísanos por WhatsApp.</span><span v-if="demoMode">Modo demostración: se guardó en este navegador.</span></div></section>
+   <div v-if="error" class="notice" role="alert">{{error}}</div>
+   <div v-if="demoMode" class="notice demo-banner">Estás en modo demostración: los datos se guardan en tu navegador. Conecta el backend PHP/MySQL para producción.</div>
+   </template>
+diff --git a/src/styles.css b/src/styles.css
+index 2ea664b..680cd12 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -1 +1,123 @@
+-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#030506;color:#f5f7f7;font-family:Arial,Helvetica,sans-serif}.site{min-height:100vh;background:radial-gradient(circle at 80% 10%,rgba(31,81,53,.18),transparent 28%),#030506}.topbar{height:78px;display:flex;align-items:center;gap:30px;max-width:1180px;margin:auto;padding:0 28px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:50;background:rgba(3,5,6,.9);backdrop-filter:blur(14px)}.brand{display:flex;flex-direction:column;line-height:.78;color:#fff;text-decoration:none;font-weight:900;font-size:25px;font-style:italic;letter-spacing:-1.5px}.crown{font-size:20px;line-height:1;margin-left:16px}.nav{display:flex;gap:28px;margin-left:auto}.nav a,.top-cta{text-decoration:none;color:#dce2df;font-size:11px;font-weight:900;letter-spacing:1.6px}.nav a{transition:.2s}.nav a:hover{color:#20ff68}.top-cta{padding:12px 17px;border:1px solid #20ff68;border-radius:7px;color:#20ff68}.menu{display:none}.hero{max-width:1180px;height:650px;margin:auto;position:relative;overflow:hidden}.landing-hero{background:radial-gradient(circle at 72% 42%,rgba(0,255,91,.12),transparent 22%),linear-gradient(110deg,#020405 0%,#07110c 46%,#020403 100%)}.landing-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15),transparent),repeating-linear-gradient(125deg,transparent 0 70px,rgba(32,255,104,.025) 71px 73px)}.hero-glow{position:absolute;width:520px;height:520px;right:-120px;top:60px;border:1px solid rgba(32,255,104,.16);border-radius:50%;box-shadow:0 0 120px rgba(32,255,104,.06),inset 0 0 80px rgba(32,255,104,.03)}.hero-content{position:relative;z-index:2;padding:130px 58px}.eyebrow{font-size:11px;letter-spacing:3px;color:#20ff68;font-weight:900}.hero h1{font-size:104px;line-height:.78;margin:25px 0 24px;font-weight:900;font-style:italic;letter-spacing:-6px}.hero h1 strong{color:#8dff00}.hero-copy{max-width:520px;color:#c8d0cc;font-size:17px;line-height:1.55}.hero-actions{display:flex;gap:12px;margin-top:30px}.primary-btn,.ghost-btn{display:inline-flex;align-items:center;gap:12px;text-decoration:none;padding:15px 20px;border-radius:7px;font-size:11px;font-weight:900;letter-spacing:1.2px}.primary-btn{background:#20ef65;color:#001208}.ghost-btn{border:1px solid #294b38;color:#fff}.hero-stamp{position:absolute;right:90px;bottom:70px;width:190px;height:190px;border:1px solid rgba(32,255,104,.45);border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;transform:rotate(-12deg);color:#20ff68;z-index:2}.hero-stamp span{font-size:11px;letter-spacing:4px}.hero-stamp strong{font-size:34px;font-style:italic}.hero-stamp small{font-size:8px;letter-spacing:2px}.events-section{max-width:1180px;margin:auto;padding:90px 58px 100px;border-top:1px solid #fff1}.section-head{display:flex;justify-content:space-between;align-items:end}.section-head h2,.experience-copy h2,.contact-section h2{font-size:52px;line-height:.9;letter-spacing:-3px;margin:12px 0 0;font-style:italic}.section-head h2 strong,.experience-copy h2 strong,.contact-section h2 strong{color:#8dff00}.carousel-controls{display:flex;gap:8px}.carousel-controls button{width:44px;height:44px;border:1px solid #284535;background:#07110b;color:#20ff68;border-radius:7px;font-size:20px;cursor:pointer}.event-stage{height:480px;position:relative;margin:45px auto 15px;max-width:850px;perspective:1200px}.event-card{position:absolute;width:300px;height:425px;left:50%;top:25px;transform-origin:center bottom;transform:translateX(calc(-50% + var(--stack)*30px)) translateY(calc(var(--stack)*7px)) rotate(calc(var(--stack)*3deg));transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .5s;opacity:calc(1 - var(--stack)*.15);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,.2);box-shadow:0 25px 60px rgba(0,0,0,.55);background:#151515}.event-card.front{transform:translateX(-50%) translateY(0) rotate(-2deg);z-index:10;opacity:1}.event-card:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 20%,rgba(255,255,255,.28),transparent 24%),linear-gradient(145deg,transparent 20%,rgba(0,0,0,.65) 100%)}.event-card.lime{background:linear-gradient(150deg,#182d1c,#050a07 52%,#78ff00)}.event-card.orange{background:linear-gradient(150deg,#4c1707,#0b0807 52%,#ff7b00)}.event-card.violet{background:linear-gradient(150deg,#24133d,#08060b 52%,#b35cff)}.event-card.red{background:linear-gradient(150deg,#3c0808,#080607 52%,#ff3b30)}.flyer-noise{position:absolute;inset:0;opacity:.12;background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 5px)}.flyer-mark{position:absolute;right:22px;top:20px;font-size:10px;font-weight:900;letter-spacing:3px;border:1px solid #fff8;padding:7px}.flyer-content{position:absolute;left:25px;right:20px;bottom:65px}.flyer-content small{font-size:10px;letter-spacing:2px}.flyer-content h3{font-size:48px;line-height:.8;font-style:italic;margin:12px 0;letter-spacing:-3px}.flyer-content p{font-size:10px;letter-spacing:2px;font-weight:900}.flyer-footer{position:absolute;bottom:18px;left:25px;font-size:7px;letter-spacing:1.5px}.event-meta{display:flex;justify-content:space-between;align-items:center;font-size:9px;letter-spacing:2px;color:#88938e}.live-dot{display:inline-block;width:7px;height:7px;background:#20ff68;border-radius:50%;box-shadow:0 0 12px #20ff68;margin-right:7px}.dots{display:flex;gap:7px}.dots button{background:none;border:0;color:#68726d;font-size:9px;cursor:pointer}.dots button.active{color:#20ff68}.experience-section{background:#070b09;border-top:1px solid #fff1;border-bottom:1px solid #fff1;padding:100px max(58px,calc((100% - 1064px)/2));display:grid;grid-template-columns:1fr 1.2fr;gap:80px}.experience-copy>p:not(.eyebrow){color:#aeb8b2;line-height:1.7;max-width:450px}.text-link{display:inline-block;color:#20ff68;text-decoration:none;font-size:10px;font-weight:900;letter-spacing:2px;margin-top:18px}.experience-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#26352d}.experience-grid article{background:#070b09;min-height:190px;padding:24px;position:relative}.experience-grid b{font-size:10px;color:#617067}.experience-grid span{display:block;font-size:28px;color:#20ff68;margin:20px 0 10px}.experience-grid h3{margin:0;font-size:14px;letter-spacing:2px}.experience-grid p{font-size:11px;color:#849089;line-height:1.5}.reservation-section{max-width:1060px;margin:auto;padding:100px 30px}.reservation-intro{padding:0 20px 30px}.reservation-intro h2{font-size:58px;line-height:.82;margin:18px 0;font-style:italic;letter-spacing:-3px}.reservation-intro h2 strong{color:#8dff00}.reservation-intro p:last-child{color:#9ca7a2}.panel{max-width:920px;margin:0 auto 14px;background:linear-gradient(135deg,#071017,#071117);border:1px solid #153042;border-radius:13px;box-shadow:0 10px 30px #0005}.day-panel,.schedule-panel,.form-panel{padding:20px 22px 22px}.section-title{font-size:18px;font-weight:900;margin-bottom:13px}.days{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}.day,.slot{border:1px solid #29404d;border-radius:11px;background:#071016;color:#fff;cursor:pointer;transition:.2s}.day{min-height:130px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center}.day:hover,.day.active,.slot:hover,.slot.active{border-color:#20ff68;box-shadow:inset 0 0 0 1px #20ff68}.day-name{font-weight:800;font-size:15px}.ring{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin-top:7px;background:conic-gradient(#20ff68 var(--pct),#35434a 0);position:relative}.ring:before{content:"";position:absolute;inset:6px;background:#071016;border-radius:50%}.ring-content{position:relative;text-align:center;font-size:15px;font-weight:900}.ring-content small{display:block;font-size:9px}.schedule-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.schedule-heading h2{font-size:18px;margin:0}.schedule-heading h2 span,.schedule-heading h2 strong,.schedule-heading b{color:#20ff68}.schedule-heading div{font-size:12px}.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.slot{min-height:82px;padding:16px 18px;text-align:left;position:relative}.slot strong{display:block;font-size:16px}.slot span{display:block;color:#20ff68;font-size:12px;margin-top:10px;font-weight:700}.slot:disabled{opacity:.4;cursor:not-allowed}.tick{position:absolute!important;right:10px;top:10px;width:24px;height:24px;border-radius:50%;background:#20ff68;color:#001b0b!important;text-align:center;line-height:24px;margin:0!important}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{height:54px;border:1px solid #29404d;border-radius:10px;display:flex;align-items:center;padding:0 14px;background:#071016}.field:focus-within{border-color:#20ff68}.field span{width:28px;color:#a9b2b6;font-size:20px}.field input{width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:13px}.field input::placeholder{color:#899399}.consent{display:flex;align-items:center;gap:8px;font-size:11px;color:#bdc5c8;margin:14px 0}.consent input{accent-color:#20ff68;width:18px;height:18px}.reserve-btn{width:100%;height:48px;border:0;border-radius:8px;background:#20ef65;color:#001208;font-weight:900;cursor:pointer}.reserve-btn:disabled{opacity:.5;cursor:not-allowed}.confirmation,.notice{max-width:860px;margin:0 auto 20px;border-radius:9px;padding:18px 22px}.confirmation{background:#002718;border:1px solid #064f31;display:flex;align-items:center;gap:18px}.check{width:38px;height:38px;border-radius:50%;background:#20ef65;color:#001208;display:grid;place-items:center;font-size:23px;font-weight:900}.confirmation strong,.confirmation span{display:block}.confirmation span{color:#b5c4bc;font-size:11px;margin-top:5px}.notice{background:#201b00;border:1px solid #6e5b08;color:#ddd;font-size:12px}.contact-section{max-width:1180px;margin:auto;padding:100px 58px;display:grid;grid-template-columns:1fr 1fr;gap:70px}.contact-section>div:first-child>p:not(.eyebrow){color:#aeb8b2;line-height:1.7}.contact-card{min-height:330px;border:1px solid #233a2c;border-radius:12px;background:radial-gradient(circle at 60% 40%,rgba(32,255,104,.1),transparent 35%),#07100b;padding:34px;position:relative;overflow:hidden}.contact-icon{font-size:40px;color:#20ff68}.contact-card small,.contact-card strong{display:block;margin-top:18px;letter-spacing:2px}.contact-card p{color:#8c9891;font-size:12px}.map-lines{position:absolute;width:500px;height:500px;border:1px solid #20ff6820;border-radius:50%;right:-230px;bottom:-230px}.map-lines:after{content:"";position:absolute;inset:50px;border:1px solid #20ff6818;border-radius:50%}footer{max-width:1180px;margin:auto;padding:28px 30px 36px;border-top:1px solid #fff2;display:flex;justify-content:space-between;color:#777;font-size:11px}.footer-brand{display:flex;align-items:center;gap:12px;font-size:20px;line-height:.8;font-style:italic}.footer-brand small{font-size:8px;font-style:normal;letter-spacing:1px;margin-left:8px}@media(max-width:760px){.topbar{height:64px;padding:0 18px}.nav,.top-cta{display:none}.menu{margin-left:auto;width:38px;height:34px;border:0;border-radius:5px;background:#06110c;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:8px}.menu span{height:3px;background:#20ff68;border-radius:4px}.hero{height:590px}.hero-content{padding:100px 24px}.hero h1{font-size:74px}.hero-stamp{right:25px;bottom:35px;width:130px;height:130px}.hero-stamp strong{font-size:25px}.events-section{padding:70px 22px}.section-head h2,.experience-copy h2,.contact-section h2{font-size:42px}.event-stage{height:430px}.event-card{width:260px;height:385px}.event-card:not(.front){opacity:.25}.experience-section,.contact-section{grid-template-columns:1fr;padding:70px 24px;gap:45px}.experience-grid{grid-template-columns:1fr 1fr}.reservation-section{padding:70px 10px}.reservation-intro{padding:0 12px 25px}.reservation-intro h2{font-size:48px}.days{grid-template-columns:repeat(5,120px);overflow-x:auto}.slots,.form-grid{grid-template-columns:1fr}.schedule-heading{align-items:flex-start;gap:10px;flex-direction:column}footer{padding:24px 18px;gap:15px;flex-direction:column}.footer-brand small{display:none}}.day-date{font-size:10px;color:#8c9891;letter-spacing:1px;margin-top:2px}.loading-row{padding:14px;color:#8c9891;font-size:13px}.empty-note{margin:12px 0 0;color:#c9a13b;font-size:13px}:focus-visible{outline:2px solid #20ff68;outline-offset:2px}.admin-link{color:#20ff68}.booking-notice{color:#20ff68;font-size:13px;margin-top:8px}.admin-wrap{max-width:1060px;margin:auto;padding:28px;min-height:100vh}.admin-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.admin-top h1{margin:6px 0 4px;font-size:26px}.admin-back{color:#20ff68;text-decoration:none;font-size:12px;letter-spacing:1px}.ghost-btn.small,.danger.small{padding:10px 12px;font-size:11px}.danger{background:#3a0d0d;border:1px solid #7a1f1f;color:#ffb4b4;border-radius:7px;cursor:pointer}.admin-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.admin-tab{background:#071016;border:1px solid #29404d;color:#fff;border-radius:8px;padding:10px 14px;cursor:pointer}.admin-tab.active{border-color:#20ff68;box-shadow:inset 0 0 0 1px #20ff68}.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.admin-grid .wide{grid-column:1/-1}.panel.wide{max-width:1060px;margin:0 auto 14px;padding:20px 22px}.stat{padding:18px;text-align:center}.stat b{display:block;font-size:28px;color:#20ff68}.stat span{font-size:12px;color:#9fb0a8}.table-wrap{overflow-x:auto}.admin-table{width:100%;border-collapse:collapse;font-size:13px}.admin-table th{text-align:left;color:#8c9891;font-size:11px;letter-spacing:1px;padding:8px;border-bottom:1px solid #1c2f22}.admin-table td{padding:8px;border-bottom:1px solid #14211a}.admin-table code{background:#071016;padding:2px 6px;border-radius:5px}.pill{padding:3px 8px;border-radius:20px;font-size:11px;border:1px solid #29404d}.pill.confirmed{color:#20ff68;border-color:#20ff68}.pill.attended{color:#8dff00;border-color:#8dff00}.pill.cancelled{color:#ff9b9b;border-color:#7a1f1f}.pill.no_show{color:#c9a13b;border-color:#6e5b08}.admin-stack{display:grid;gap:12px}.day-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.day-edit{display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:end;margin-bottom:12px}.day-edit label,.admin-form label{display:grid;gap:6px;font-size:12px;color:#9fb0a8}.day-edit input,.admin-form input,.admin-form textarea,.admin-form select,.admin-filters input,.admin-filters select,.mini{background:#071016;border:1px solid #29404d;color:#fff;border-radius:8px;padding:10px}.mini{width:90px}.admin-filters{display:grid;grid-template-columns:180px 160px 1fr auto;gap:10px;margin-bottom:12px}.new-slot{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.admin-form{display:grid;gap:10px;margin-bottom:14px}.switch{display:flex!important;align-items:center;gap:8px;flex-direction:row!important}.switch input{width:18px;height:18px;accent-color:#20ff68}.admin-error{color:#ff9b9b}.admin-ok{color:#20ff68}.admin-hint{color:#8c9891;font-size:12px;margin-top:12px}@media(max-width:760px){.admin-wrap{padding:18px 14px}.admin-grid{grid-template-columns:1fr 1fr}.day-edit,.admin-filters{grid-template-columns:1fr}}.demo-banner{border-color:#20ff68}.admin-demo{margin-top:10px;color:#20ff68;font-size:13px}.admin-demo .ghost-btn{margin-left:8px}.event-card{overflow:hidden}.flyer-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}.event-card .flyer-noise,.event-card .flyer-mark,.event-card .flyer-content,.event-card .flyer-footer{position:relative;z-index:1}.event-card:has(.flyer-img) .flyer-mark{opacity:.25}.event-card:has(.flyer-img) .flyer-noise{opacity:.35}.event-card:has(.flyer-img) .flyer-content{text-shadow:0 2px 12px rgba(0,0,0,.8)}
+\ No newline at end of file
++*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#050505;color:#f5f7f7;font-family:Arial,Helvetica,sans-serif}.site{min-height:100vh;background:radial-gradient(circle at 80% 10%,rgba(255,106,0,.12),transparent 28%),#050505}.topbar{height:78px;display:flex;align-items:center;gap:30px;max-width:1180px;margin:auto;padding:0 28px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:50;background:rgba(5,5,5,.9);backdrop-filter:blur(14px)}.brand{display:flex;flex-direction:column;line-height:.78;color:#fff;text-decoration:none;font-weight:900;font-size:25px;font-style:italic;letter-spacing:-1.5px}.crown{font-size:20px;line-height:1;margin-left:16px}.nav{display:flex;gap:28px;margin-left:auto}.nav a,.top-cta{text-decoration:none;color:#eee;font-size:11px;font-weight:900;letter-spacing:1.6px}.nav a{transition:.2s}.nav a:hover{color:#ffd400}.top-cta{padding:12px 17px;border:1px solid #e10600;border-radius:7px;color:#ffd400}.menu{display:none}.hero{max-width:1180px;height:650px;margin:auto;position:relative;overflow:hidden}.landing-hero{background:radial-gradient(circle at 72% 42%,rgba(225,6,0,.15),transparent 22%),linear-gradient(110deg,#050505 0%,#050505 46%,#050505 100%)}.landing-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.2),transparent),repeating-linear-gradient(125deg,transparent 0 70px,rgba(255,212,0,.03) 71px 73px)}.hero-glow{position:absolute;width:520px;height:520px;right:-120px;top:60px;border:1px solid rgba(225,6,0,.2);border-radius:50%;box-shadow:0 0 120px rgba(225,6,0,.08),inset 0 0 80px rgba(225,6,0,.04)}.hero-content{position:relative;z-index:2;padding:130px 58px}.eyebrow{font-size:11px;letter-spacing:3px;color:#e10600;font-weight:900}.hero h1{font-size:104px;line-height:.78;margin:25px 0 24px;font-weight:900;font-style:italic;letter-spacing:-6px}.hero h1 strong{color:#ffd400}.hero-copy{max-width:520px;color:#ccc;font-size:17px;line-height:1.55}.hero-actions{display:flex;gap:12px;margin-top:30px}.primary-btn,.ghost-btn{display:inline-flex;align-items:center;gap:12px;text-decoration:none;padding:15px 20px;border-radius:7px;font-size:11px;font-weight:900;letter-spacing:1.2px}.primary-btn{background:#e10600;color:#050505}.ghost-btn{border:1px solid #2a1a1a;color:#fff}.hero-stamp{position:absolute;right:90px;bottom:70px;width:190px;height:190px;border:1px solid rgba(255,212,0,.45);border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;transform:rotate(-12deg);color:#ffd400;z-index:2}.hero-stamp span{font-size:11px;letter-spacing:4px}.hero-stamp strong{font-size:34px;font-style:italic}.hero-stamp small{font-size:8px;letter-spacing:2px}.events-section{max-width:1180px;margin:auto;padding:90px 58px 100px;border-top:1px solid #2a1a1a}.section-head{display:flex;justify-content:space-between;align-items:end}.section-head h2,.experience-copy h2,.contact-section h2{font-size:52px;line-height:.9;letter-spacing:-3px;margin:12px 0 0;font-style:italic}.section-head h2 strong,.experience-copy h2 strong,.contact-section h2 strong{color:#ffd400}.carousel-controls{display:flex;gap:8px}.carousel-controls button{width:44px;height:44px;border:1px solid #2a1a1a;background:#050505;color:#ffd400;border-radius:7px;font-size:20px;cursor:pointer}.event-stage{height:480px;position:relative;margin:45px auto 15px;max-width:850px;perspective:1200px}.event-card{position:absolute;width:300px;height:425px;left:50%;top:25px;transform-origin:center bottom;transform:translateX(calc(-50% + var(--stack)*30px)) translateY(calc(var(--stack)*7px)) rotate(calc(var(--stack)*3deg));transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .5s;opacity:calc(1 - var(--stack)*.15);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,.2);box-shadow:0 25px 60px rgba(0,0,0,.55);background:#050505}.event-card.front{transform:translateX(-50%) translateY(0) rotate(-2deg);z-index:10;opacity:1}.event-card:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 20%,rgba(255,255,255,.28),transparent 24%),linear-gradient(145deg,transparent 20%,rgba(0,0,0,.65) 100%)}.event-card.lime{background:linear-gradient(150deg,#050505,#050505 52%,#ffd400)}.event-card.orange{background:linear-gradient(150deg,#2a0a0a,#050505 52%,#ff6a00)}.event-card.violet{background:linear-gradient(150deg,#2a1a3d,#050505 52%,#ff1493)}.event-card.red{background:linear-gradient(150deg,#2a0a0a,#050505 52%,#e10600)}.flyer-noise{position:absolute;inset:0;opacity:.12;background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 5px)}.flyer-mark{position:absolute;right:22px;top:20px;font-size:10px;font-weight:900;letter-spacing:3px;border:1px solid #fff;padding:7px}.flyer-content{position:absolute;left:25px;right:20px;bottom:65px}.flyer-content small{font-size:10px;letter-spacing:2px}.flyer-content h3{font-size:48px;line-height:.8;font-style:italic;margin:12px 0;letter-spacing:-3px}.flyer-content p{font-size:10px;letter-spacing:2px;font-weight:900}.flyer-footer{position:absolute;bottom:18px;left:25px;font-size:7px;letter-spacing:1.5px}.event-meta{display:flex;justify-content:space-between;align-items:center;font-size:9px;letter-spacing:2px;color:#888}.live-dot{display:inline-block;width:7px;height:7px;background:#e10600;border-radius:50%;box-shadow:0 0 12px #e10600;margin-right:7px}.dots{display:flex;gap:7px}.dots button{background:none;border:0;color:#aaa;font-size:9px;cursor:pointer}.dots button.active{color:#e10600}.experience-section{background:#050505;border-top:1px solid #fff;border-bottom:1px solid #fff;padding:100px max(58px,calc((100% - 1064px)/2));display:grid;grid-template-columns:1fr 1.2fr;gap:80px}.experience-copy>p:not(.eyebrow){color:#aaa;line-height:1.7;max-width:450px}.text-link{display:inline-block;color:#e10600;text-decoration:none;font-size:10px;font-weight:900;letter-spacing:2px;margin-top:18px}.experience-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#050505}.experience-grid article{background:#050505;min-height:190px;padding:24px;position:relative}.experience-grid b{font-size:10px;color:#888}.experience-grid span{display:block;font-size:28px;color:#e10600;margin:20px 0 10px}.experience-grid h3{margin:0;font-size:14px;letter-spacing:2px}.experience-grid p{font-size:11px;color:#888;line-height:1.5}.reservation-section{max-width:1060px;margin:auto;padding:100px 30px}.reservation-intro{padding:0 20px 30px}.reservation-intro h2{font-size:58px;line-height:.82;margin:18px 0;font-style:italic;letter-spacing:-3px}.reservation-intro h2 strong{color:#ffd400}.reservation-intro p:last-child{color:#aaa}.panel{max-width:920px;margin:0 auto 14px;background:linear-gradient(135deg,#050505,#050505);border:1px solid #1a2a30;border-radius:13px;box-shadow:0 10px 30px #050505}.day-panel,.schedule-panel,.form-panel{padding:20px 22px 22px}.section-title{font-size:18px;font-weight:900;margin-bottom:13px}.days{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}.day,.slot{border:1px solid #2a1a1a;border-radius:11px;background:#050505;color:#fff;cursor:pointer;transition:.2s}.day{min-height:130px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center}.day:hover,.day.active,.slot:hover,.slot.active{border-color:#e10600;box-shadow:inset 0 0 0 1px #e10600}.day-name{font-weight:800;font-size:15px}.ring{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin-top:7px;background:conic-gradient(#e10600 var(--pct),#050505 0);position:relative}.ring:before{content:"";position:absolute;inset:6px;background:#050505;border-radius:50%}.ring-content{position:relative;text-align:center;font-size:15px;font-weight:900}.ring-content small{display:block;font-size:9px}.schedule-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.schedule-heading h2{font-size:18px;margin:0}.schedule-heading h2 span,.schedule-heading h2 strong,.schedule-heading b{color:#e10600}.schedule-heading div{font-size:12px}.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.slot{min-height:82px;padding:16px 18px;text-align:left;position:relative}.slot strong{display:block;font-size:16px}.slot span{display:block;color:#e10600;font-size:12px;margin-top:10px;font-weight:700}.slot:disabled{opacity:.4;cursor:not-allowed}.tick{position:absolute!important;right:10px;top:10px;width:24px;height:24px;border-radius:50%;background:#e10600;color:#050505!important;text-align:center;line-height:24px;margin:0!important}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{height:54px;border:1px solid #2a1a1a;border-radius:10px;display:flex;align-items:center;padding:0 14px;background:#050505}.field:focus-within{border-color:#e10600}.field span{width:28px;color:#bbb;font-size:20px}.field input{width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:13px}.field input::placeholder{color:#777}.consent{display:flex;align-items:center;gap:8px;font-size:11px;color:#ccc;margin:14px 0}.consent input{accent-color:#e10600;width:18px;height:18px}.reserve-btn{width:100%;height:48px;border:0;border-radius:8px;background:#e10600;color:#050505;font-weight:900;cursor:pointer}.reserve-btn:disabled{opacity:.5;cursor:not-allowed}.confirmation,.notice{max-width:860px;margin:0 auto 20px;border-radius:9px;padding:18px 22px}.confirmation{background:#050505;border:1px solid #0a2a15;display:flex;align-items:center;gap:18px}.check{width:38px;height:38px;border-radius:50%;background:#e10600;color:#050505;display:grid;place-items:center;font-size:23px;font-weight:900}.confirmation strong,.confirmation span{display:block}.confirmation span{color:#ccc;font-size:11px;margin-top:5px}.notice{background:#050505;border:1px solid #2a1a0a;color:#ddd;font-size:12px}.contact-section{max-width:1180px;margin:auto;padding:100px 58px;display:grid;grid-template-columns:1fr 1fr;gap:70px}.contact-section>div:first-child>p:not(.eyebrow){color:#aaa;line-height:1.7}.contact-card{min-height:330px;border:1px solid #2a2a2c;border-radius:12px;background:radial-gradient(circle at 60% 40%,rgba(32,255,104,.1),transparent 35%),#050505;padding:34px;position:relative;overflow:hidden}.contact-icon{font-size:40px;color:#e10600}.contact-card small,.contact-card strong{display:block;margin-top:18px;letter-spacing:2px}.contact-card p{color:#888;font-size:12px}.map-lines{position:absolute;width:500px;height:500px;border:1px solid #e1060020;border-radius:50%;right:-230px;bottom:-230px}.map-lines:after{content:"";position:absolute;inset:50px;border:1px solid #e1060018;border-radius:50%}footer{max-width:1180px;margin:auto;padding:28px 30px 36px;border-top:1px solid #fff;display:flex;justify-content:space-between;color:#888;font-size:11px}.footer-brand{display:flex;align-items:center;gap:12px;font-size:20px;line-height:.8;font-style:italic}.footer-brand small{font-size:8px;font-style:normal;letter-spacing:1px;margin-left:8px}@media(max-width:760px){.topbar{height:64px;padding:0 18px}.nav,.top-cta{display:none}.menu{margin-left:auto;width:38px;height:34px;border:0;border-radius:5px;background:#050505;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:8px}.menu span{height:3px;background:#e10600;border-radius:4px}.hero{height:590px}.hero-content{padding:100px 24px}.hero h1{font-size:74px}.hero-stamp{right:25px;bottom:35px;width:130px;height:130px}.hero-stamp strong{font-size:25px}.events-section{padding:70px 22px}.section-head h2,.experience-copy h2,.contact-section h2{font-size:42px}.event-stage{height:430px}.event-card{width:260px;height:385px}.event-card:not(.front){opacity:.25}.experience-section,.contact-section{grid-template-columns:1fr;padding:70px 24px;gap:45px}.experience-grid{grid-template-columns:1fr 1fr}.reservation-section{padding:70px 10px}.reservation-intro{padding:0 12px 25px}.reservation-intro h2{font-size:48px}.days{grid-template-columns:repeat(5,120px);overflow-x:auto}.slots,.form-grid{grid-template-columns:1fr}.schedule-heading{align-items:flex-start;gap:10px;flex-direction:column}footer{padding:24px 18px;gap:15px;flex-direction:column}.footer-brand small{display:none}}.day-date{font-size:10px;color:#888;letter-spacing:1px;margin-top:2px}.loading-row{padding:14px;color:#888;font-size:13px}.empty-note{margin:12px 0 0;color:#ffd400;font-size:13px}:focus-visible{outline:2px solid #e10600;outline-offset:2px}.admin-link{color:#e10600}.booking-notice{color:#e10600;font-size:13px;margin-top:8px}.admin-wrap{max-width:1060px;margin:auto;padding:28px;min-height:100vh}.admin-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.admin-top h1{margin:6px 0 4px;font-size:26px}.admin-back{color:#e10600;text-decoration:none;font-size:12px;letter-spacing:1px}.ghost-btn.small,.danger.small{padding:10px 12px;font-size:11px}.danger{background:#2a0a0a;border:1px solid #2a0a0a;color:#ff1493;border-radius:7px;cursor:pointer}.admin-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.admin-tab{background:#050505;border:1px solid #2a1a1a;color:#fff;border-radius:8px;padding:10px 14px;cursor:pointer}.admin-tab.active{border-color:#e10600;box-shadow:inset 0 0 0 1px #e10600}.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.admin-grid .wide{grid-column:1/-1}.panel.wide{max-width:1060px;margin:0 auto 14px;padding:20px 22px}.stat{padding:18px;text-align:center}.stat b{display:block;font-size:28px;color:#e10600}.stat span{font-size:12px;color:#aaa}.table-wrap{overflow-x:auto}.admin-table{width:100%;border-collapse:collapse;font-size:13px}.admin-table th{text-align:left;color:#888;font-size:11px;letter-spacing:1px;padding:8px;border-bottom:1px solid #050505}.admin-table td{padding:8px;border-bottom:1px solid #050505}.admin-table code{background:#050505;padding:2px 6px;border-radius:5px}.pill{padding:3px 8px;border-radius:20px;font-size:11px;border:1px solid #2a1a1a}.pill.confirmed{color:#e10600;border-color:#e10600}.pill.attended{color:#ffd400;border-color:#ffd400}.pill.cancelled{color:#ff1493;border-color:#2a0a0a}.pill.no_show{color:#ffd400;border-color:#2a1a0a}.admin-stack{display:grid;gap:12px}.day-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.day-edit{display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:end;margin-bottom:12px}.day-edit label,.admin-form label{display:grid;gap:6px;font-size:12px;color:#aaa}.day-edit input,.admin-form input,.admin-form textarea,.admin-form select,.admin-filters input,.admin-filters select,.mini{background:#050505;border:1px solid #2a1a1a;color:#fff;border-radius:8px;padding:10px}.mini{width:90px}.admin-filters{display:grid;grid-template-columns:180px 160px 1fr auto;gap:10px;margin-bottom:12px}.new-slot{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.admin-form{display:grid;gap:10px;margin-bottom:14px}.switch{display:flex!important;align-items:center;gap:8px;flex-direction:row!important}.switch input{width:18px;height:18px;accent-color:#e10600}.admin-error{color:#ff1493}.admin-ok{color:#e10600}.admin-hint{color:#888;font-size:12px;margin-top:12px}@media(max-width:760px){.admin-wrap{padding:18px 14px}.admin-grid{grid-template-columns:1fr 1fr}.day-edit,.admin-filters{grid-template-columns:1fr}}.demo-banner{border-color:#e10600}.admin-demo{margin-top:10px;color:#e10600;font-size:13px}.admin-demo .ghost-btn{margin-left:8px}.event-card{overflow:hidden}.flyer-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}.event-card .flyer-noise,.event-card .flyer-mark,.event-card .flyer-content,.event-card .flyer-footer{z-index:1}.event-card:has(.flyer-img) .flyer-mark{opacity:.25}.event-card:has(.flyer-img) .flyer-noise{opacity:.08}.event-card:has(.flyer-img) .flyer-content{display:none}.event-card:has(.flyer-img) .flyer-footer{text-shadow:0 2px 10px rgba(0,0,0,.9)}
++/* Hamburguesa móvil (el .menu estaba display:none y sin handler) */
++.menu{display:none;cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(3,5,6,.6);border-radius:9px;width:38px;height:38px;padding:0;flex-shrink:0;transition:.2s;z-index:55}
++.menu:hover{border-color:rgba(255,255,255,.4);background:rgba(8,12,10,.9)}
++.menu span{display:block;width:22px;height:2px;background:#eee;border-radius:2px;margin:4px 0;transition:.2s}
++.menu.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px);margin-top:8px}
++.menu.open span:nth-child(2){opacity:0}
++.menu.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-6px);margin-bottom:8px}
++@media(max-width:760px){
++.menu{display:inline-flex;flex-direction:column;justify-content:center}
++.nav{position:fixed;top:78px;left:0;right:0;bottom:0;overflow-y:auto;background:rgba(3,5,6,.98);backdrop-filter:blur(14px);border-bottom:1px solid #fff;flex-direction:column;padding:12px 16px;gap:14px;display:none;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.6)}
++.nav.open{display:flex;animation:vs-fade-in .17s ease-out}
++@keyframes vs-fade-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
++}
++.mobile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
++.fade-enter-active,.fade-leave-active{transition:opacity .15s ease}
++.fade-enter-from,.fade-leave-to{opacity:0}
++/* Compactación reservas */
++.reservation-section{padding:42px 12px}
++.panel{padding:14px 15px}
++.panel .section-title{font-size:14px;margin-top:0}
++.day-card-head small{font-size:10px;color:#888}
++.cal-grid{gap:3px}
++.cal-cell{min-height:50px;padding:5px 3px;font-size:12px}
++.cal-cupos{font-size:10px}
++.slots{gap:8px}
++.slot{font-size:13px;padding:9px 10px}
++.slot .slot-cupos{font-size:11px}
++.schedule-heading{gap:6px}
++.schedule-heading div{font-size:12px}
++.form-grid{grid-template-columns:1fr 1fr;gap:8px}
++.field{padding:8px 10px;font-size:13px}
++.reserve-btn{padding:12px 18px}
++
++.block-list{list-style:none;display:flex;flex-wrap:wrap;gap:10px;padding:0;margin:16px 0 0}
++.block-list li{display:flex;flex-direction:column;gap:3px;border:1px solid #050505;background:#050505;border-radius:9px;padding:10px 14px;min-width:158px}
++.block-list span{font-size:10px;letter-spacing:2px;font-weight:900;color:#e10600}
++.block-list b{font-size:13px;color:#eee;font-weight:700}
++.slot .slot-range{color:#ccc;font-size:12px;margin-top:6px;letter-spacing:.3px}
++.slot .slot-cupos{color:#e10600;font-size:12px;margin-top:5px;font-weight:700}
++.slot.full{border-color:#2a0a0a;background:#050505}
++.slot-chosen{margin:0 0 14px;font-size:12px;color:#aaa}
++.slot-chosen b{color:#ffd400}
++.admin-table .muted{color:#888;font-size:11px}
++.admin-table .bloque-tag{color:#e10600;font-weight:700}
++
++.slot .solo-desktop{display:inline;margin-top:0}
++/* Responsive: los 5 dias y los 3 bloques siempre visibles */
++.day-name .short,.day-date .short{display:none}
++@media(max-width:760px){
++.days{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;overflow:visible}
++.day{min-height:94px;padding:8px 3px;border-radius:9px}
++.day-name{font-size:9px;letter-spacing:.4px}
++.day-name .long,.day-date .long{display:none}
++.day-name .short,.day-date .short{display:inline}
++.day-date{font-size:8px;letter-spacing:0;margin-top:1px}
++.ring{width:38px;height:38px;margin-top:5px}
++.ring:before{inset:4px}
++.ring-content{font-size:10px;line-height:1.1}
++.ring-content small{display:none}
++.slots{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
++.slot{min-height:100px;padding:10px 8px;border-radius:9px}
++.slot strong{font-size:10.5px;letter-spacing:.3px;line-height:1.15}
++.slot .slot-range{font-size:9px;margin-top:5px;line-height:1.3}
++.slot .slot-cupos{font-size:9px;margin-top:4px}
++.slot .solo-desktop{display:none}
++.tick{right:5px;top:5px;width:17px;height:17px;line-height:17px;font-size:11px}
++.block-list{gap:6px}
++.block-list li{min-width:0;flex:1 1 30%;padding:8px 9px}
++.block-list span{font-size:9px;letter-spacing:1px}
++.block-list b{font-size:11px}
++}
++@media(max-width:400px){
++.days{gap:5px}
++.day-name{font-size:8px}
++.ring{width:34px;height:34px}
++.slot{padding:9px 6px}
++.slot strong{font-size:9.5px}
++.slot .slot-range,.slot .slot-cupos{font-size:8.5px}
++}
++
++/* Calendario mensual Lun-Vie */
++.cal-nav{display:flex;align-items:center;gap:12px;margin-bottom:12px}
++.cal-nav strong{font-size:14px;letter-spacing:2px}
++.cal-nav button{width:34px;height:34px;border:1px solid #2a1a1a;background:#050505;color:#e10600;border-radius:8px;font-size:18px;line-height:1;cursor:pointer}
++.cal-nav button:disabled{opacity:.35;cursor:not-allowed}
++.cal-head{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px}
++.cal-head span{text-align:center;font-size:10px;letter-spacing:1.5px;color:#888;font-weight:900}
++.cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
++.cal-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:66px;padding:8px 4px;border:1px solid #2a1a1a;border-radius:9px;background:#050505;color:#fff;cursor:pointer;transition:.2s}
++.cal-cell.empty{border:0;background:transparent;cursor:default;min-height:0}
++.cal-cell:not(.empty):hover,.cal-cell.active{border-color:#e10600;box-shadow:inset 0 0 0 1px #e10600}
++.cal-cell.off{opacity:.3;cursor:not-allowed}
++.cal-day{font-size:17px;font-weight:900;line-height:1}
++.cal-cupos{font-size:10px;color:#ffd400;font-weight:700}
++.cal-cell.full .cal-cupos{color:#ffd400}
++.cal-bar{display:block;width:68%;height:3px;border-radius:3px;background:#050505;overflow:hidden}
++.cal-bar i{display:block;height:100%;background:#e10600}
++.cal-note{margin:14px 0 0;color:#eee;font-size:12px}
++.cal-note b{color:#e10600}
++@media(max-width:760px){
++.cal-cell{min-height:56px;padding:6px 2px;border-radius:8px;gap:2px}
++.cal-day{font-size:14px}
++.cal-cupos{font-size:8.5px}
++.cal-head span{font-size:9px;letter-spacing:1px}
++.cal-nav button{width:30px;height:30px;font-size:16px}
++.cal-nav strong{font-size:12px;letter-spacing:1px}
++.cal-note{font-size:11px}
++}
++
++/* Cartelera: slider a todo el ancho de la pantalla; se detiene al presionar y sigue al soltar. */
++.events-section{max-width:none;padding:90px 0 100px}
++.events-section .section-head,.events-section .event-meta{max-width:1180px;margin-left:auto;margin-right:auto;padding:0 58px}
++.event-stage{max-width:none;width:100%;height:auto;min-height:0;margin:45px 0 15px;padding:0;perspective:none;overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y}
++.event-stage.held{cursor:grabbing}
++.event-track{display:flex;width:max-content;padding-bottom:6px;animation:vs-marquee 36s linear infinite;will-change:transform}
++.event-stage.held .event-track{animation-play-state:paused}
++.event-track .event-card{position:relative;left:auto;top:auto;flex:0 0 auto;width:330px;height:460px;margin-right:18px;transform:none;opacity:1;transition:none}
++@keyframes vs-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
++@media(max-width:980px){.event-track .event-card{width:270px;height:385px}}
++@media(max-width:760px){.events-section .section-head,.events-section .event-meta{padding:0 18px}.event-track .event-card{width:230px;height:325px;margin-right:12px}}
++@media(prefers-reduced-motion:reduce){.event-track{animation:none}}
++
