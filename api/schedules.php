@@ -27,10 +27,29 @@ if (($method === 'PATCH' || $method === 'PUT') && count($parts) === 1) {
   $active = array_key_exists('active', $x) ? (!empty($x['active']) ? 1 : 0) : (int)$row['active'];
   if ($label === '' || mb_strlen($label) > 30) respond(['error' => 'Nombre inválido (1-30)'], 422);
   if ($capacity < 1 || $capacity > 500) respond(['error' => 'Capacidad 1-500'], 422);
-  try { $pdo->prepare("UPDATE schedule_templates SET label=?,capacity=?,active=? WHERE id=?")->execute([$label, $capacity, $active, $id]); }
-  catch (PDOException $e) { respond(['error' => 'Ese nombre ya existe'], 409); }
-  auditLog($admin['id'], 'update', 'schedule_template', $id, ['label' => $label, 'capacity' => $capacity, 'active' => $active]);
-  respond(['ok' => true]);
+  // El frontend calcula los cupos del día SUMANDO los bloques (time_slots), así que la
+  // "Capacidad día" se reparte entre los bloques activos para que se refleje (60 => 20+20+20).
+  $sq = $pdo->prepare("SELECT id FROM time_slots WHERE template_id=? AND active=1 ORDER BY start_time");
+  $sq->execute([$id]);
+  $activeSlots = $sq->fetchAll();
+  $bloques = count($activeSlots);
+  if ($bloques > 0 && $capacity < $bloques) respond(['error' => "Capacidad mínima con {$bloques} bloques activos: {$bloques}"], 422);
+  try {
+    $pdo->beginTransaction();
+    $pdo->prepare("UPDATE schedule_templates SET label=?,capacity=?,active=? WHERE id=?")->execute([$label, $capacity, $active, $id]);
+    if ($bloques > 0) {
+      $base = intdiv($capacity, $bloques);
+      $rem = $capacity - $base * $bloques;
+      $up = $pdo->prepare("UPDATE time_slots SET capacity=? WHERE id=?");
+      foreach ($activeSlots as $i => $slotRow) $up->execute([$base + ($i < $rem ? 1 : 0), $slotRow['id']]);
+    }
+    $pdo->commit();
+  } catch (PDOException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    respond(['error' => 'Ese nombre ya existe'], 409);
+  }
+  auditLog($admin['id'], 'update', 'schedule_template', $id, ['label' => $label, 'capacity' => $capacity, 'active' => $active, 'bloques' => $bloques]);
+  respond(['ok' => true, 'bloques' => $bloques]);
 }
 if ($method === 'POST' && count($parts) === 2 && $parts[1] === 'slots') {
   $x = body(); $tid = $parts[0];

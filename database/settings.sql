@@ -12,5 +12,6 @@ INSERT IGNORE INTO settings(`key`,`value`) VALUES
  ('address','Av. Valparaíso 65, Viña del Mar'),
  ('whatsapp',''),
  ('instagram',''),
+ ('booking_start_date','2026-10-01'),
  ('booking_enabled','1'),
  ('booking_notice','');

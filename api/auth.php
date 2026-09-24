@@ -20,7 +20,14 @@ if ($action === 'logout') {
   $a = currentAdmin();
   if ($a) auditLog($a['id'], 'logout', 'admin', $a['id']);
   $_SESSION = [];
-  if (ini_get('session.use_cookies')) { $p = session_get_cookie_params(); setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']); }
+  if (ini_get('session.use_cookies')) {
+    $p = session_get_cookie_params();
+    // Forma con array para borrar la cookie con los mismos atributos (incluido SameSite: None en cross-site).
+    setcookie(session_name(), '', [
+      'expires' => time() - 42000, 'path' => $p['path'], 'domain' => $p['domain'],
+      'secure' => $p['secure'], 'httponly' => $p['httponly'], 'samesite' => $p['samesite'] ?? 'Lax',
+    ]);
+  }
   session_destroy();
   respond(['ok' => true]);
 }

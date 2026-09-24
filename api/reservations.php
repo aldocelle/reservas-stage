@@ -12,7 +12,9 @@ if ($date === '' || $slotId === '' || $firstName === '' || $lastName === '' || $
 if (!validDate($date)) respond(['error' => 'Fecha inválida, usa YYYY-MM-DD'], 422);
 $today = date('Y-m-d');
 if ($date < $today) respond(['error' => 'La fecha ya pasó'], 422);
-if ($date > date('Y-m-d', strtotime('+60 days'))) respond(['error' => 'Solo se puede reservar hasta 60 días adelante'], 422);
+if ($date > bookingMaxDate()) respond(['error' => 'Solo se puede reservar hasta 60 días adelante'], 422);
+$start = bookingStart();
+if ($start !== '' && $date < $start) respond(['error' => 'Las reservas comienzan el ' . date('d-m-Y', strtotime($start))], 422);
 if (mb_strlen($firstName) < 2 || mb_strlen($firstName) > 80 || mb_strlen($lastName) < 2 || mb_strlen($lastName) > 80) respond(['error' => 'Nombre y apellido deben tener entre 2 y 80 caracteres'], 422);
 $whatsapp = preg_replace('/[\s\-\.\(\)]/', '', $whatsappRaw);
 if (!preg_match('/^\+?\d{8,15}$/', $whatsapp)) respond(['error' => 'WhatsApp inválido (8 a 15 dígitos)'], 422);

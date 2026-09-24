@@ -10,12 +10,13 @@ if ($method === 'GET') {
 }
 if ($method === 'PUT' || $method === 'PATCH' || $method === 'POST') {
   $x = body();
-  $allowed = ['site_name', 'hero_title', 'hero_subtitle', 'address', 'whatsapp', 'instagram', 'booking_enabled', 'booking_notice'];
+  $allowed = ['site_name', 'hero_title', 'hero_subtitle', 'address', 'whatsapp', 'instagram', 'booking_start_date', 'booking_enabled', 'booking_notice'];
   $saved = [];
   foreach ($allowed as $k) {
     if (!array_key_exists($k, $x)) continue;
     $v = trim((string)$x[$k]);
     if (mb_strlen($v) > 500) respond(['error' => "Valor muy largo: {$k}"], 422);
+    if ($k === 'booking_start_date' && $v !== '' && (!validDate($v) || $v < date('Y-m-d'))) respond(['error' => 'Fecha de inicio inválida (usa YYYY-MM-DD de hoy en adelante)'], 422);
     $pdo->prepare("INSERT INTO settings(`key`,`value`) VALUES(?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)")->execute([$k, $v]);
     $saved[] = $k;
   }

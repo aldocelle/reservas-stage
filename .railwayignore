@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+dist
+dist-ssr
+.vscode
+.vercel
+design/flyers-origen
+*.log
+.env
+.env.local
+.DS_Store

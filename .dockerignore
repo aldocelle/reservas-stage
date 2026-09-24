@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+node_modules
+dist
+dist-ssr
+design
+docker-compose.yml
+.vscode
+.vercel
+*.log
+.env
+.env.local
+.env.*
+!.env.example

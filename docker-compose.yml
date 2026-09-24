@@ -1,0 +1,38 @@
+# Stack local idéntico a Railway: app (PHP + dist) + MySQL 8.
+#   docker compose up --build   ->  http://localhost:8090
+# Admin: ADMIN_EMAIL / ADMIN_PASS de abajo. SEED_DEMO=1 carga reservas de ejemplo si la tabla está vacía.
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: reservas_stage
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  app:
+    build:
+      context: .
+    ports:
+      - "8090:8080"
+    environment:
+      PORT: "8080"
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: reservas_stage
+      DB_USER: root
+      DB_PASS: root
+      ADMIN_EMAIL: admin@vinastage.cl
+      ADMIN_PASS: Vinastage2026
+      SEED_DEMO: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  dbdata:
