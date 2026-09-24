@@ -7,7 +7,7 @@
 #     ./scripts/vercel-deploy.sh                    # frontend en Vercel + API en Railway
 #
 # Variables opcionales:
-#   PROJECT=reservas-stage  VITE_DEMO_MODE=1  VITE_API_BASE_URL=/api
+#   PROJECT=reservas-stage  VITE_DEMO_MODE=0  VITE_API_BASE_URL=https://<app>.up.railway.app/api
 #   PREVIEW=1            → deploy de preview (no toca producción ni sus variables)
 #   ENVIRONMENT=preview  → fuerza el entorno de Vercel a leer/escribir variables
 #   ADMIN_ORIGIN=https://reservas-stage.vercel.app   # solo informativo (va en el backend PHP)
@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PROJECT="${PROJECT:-reservas-stage}"
-DEMO="${VITE_DEMO_MODE:-1}"
+DEMO="${VITE_DEMO_MODE:-0}"
 API_URL="${VITE_API_BASE_URL:-/api}"
 PREVIEW="${PREVIEW:-0}"
 # Un preview no debe escribir variables de producción: cada cosa en su entorno.
@@ -27,7 +27,7 @@ case "$DEMO" in
 esac
 if [ "$DEMO" = "0" ] && [ "$API_URL" = "/api" ]; then
   echo "VITE_DEMO_MODE=0 pide un backend real, pero VITE_API_BASE_URL=/api apunta a Vercel (no hay PHP ahí)."
-  echo "Usa la URL de la API (p. ej. https://<app>.up.railway.app/api) o deja VITE_DEMO_MODE=1."
+  echo "Usa la URL de la API (p. ej. https://<app>.up.railway.app/api) y VITE_DEMO_MODE=0."
   exit 1
 fi
 

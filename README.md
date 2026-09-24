@@ -35,7 +35,7 @@ Landing + reservas. Frontend Vue 3 + Vite, backend PHP + MySQL.
 Requiere Docker. Un contenedor sirve web + API + MySQL 8:
 
 ```bash
-docker compose up --build     # http://localhost:8090 · admin: admin@vinastage.cl / Vinastage2026
+docker compose up --build     # http://localhost:8090 · admin: demo@vinastage.cl / demo1234
 ```
 
 Al arrancar el contenedor (`docker/entrypoint.sh`):
@@ -151,7 +151,7 @@ Validaciones backend: fecha `YYYY-MM-DD` real, no pasada, máx 60 días, `weekda
 1. `npm install`
 2. `npm run dev` (Vite en `:5173`, `/api` proxea a `http://localhost:8080` — ver `vite.config.js`)
 3. Servir el PHP: `php -S localhost:8080 -t dist router.php` (web + API) o solo la API con `php -S localhost:8080 -t api`; prepara la DB con `php database/migrate.php` (equivale a importar `database/schema.sql` + `database/settings.sql`)
-4. Crear admin: `ADMIN_EMAIL=admin@vinastage.cl ADMIN_PASS=ClaveSegura123 php database/create_admin.php`, entrar en `http://localhost:5173/#/admin`
+4. Crear/actualizar admin: `ADMIN_EMAIL=demo@vinastage.cl ADMIN_PASS=demo1234 php database/create_admin.php`, entrar en `http://localhost:5173/#/admin`
 4. Variables: copiar `.env.example` → `.env` (`DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASS`, `VITE_API_BASE_URL`)
 5. Verificar la cookie de sesión (Lax en mismo dominio, None en cross-site): `php scripts/test-session-cookie.php`
 

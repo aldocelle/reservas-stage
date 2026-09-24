@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS reservations(
   slot_id CHAR(36) NOT NULL,
   first_name VARCHAR(80) NOT NULL,
   last_name VARCHAR(80) NOT NULL,
+  rut_normalizado VARCHAR(9) NULL,
   whatsapp VARCHAR(30) NOT NULL,
   email VARCHAR(160),
   whatsapp_consent TINYINT(1) DEFAULT 0,
@@ -47,9 +48,11 @@ CREATE TABLE IF NOT EXISTS reservations(
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   cancelled_at TIMESTAMP NULL,
+  active_rut VARCHAR(9) GENERATED ALWAYS AS (CASE WHEN status <> 'cancelled' THEN rut_normalizado ELSE NULL END) STORED,
   INDEX idx_date_slot(reservation_date,slot_id),
   INDEX idx_status(status),
   INDEX idx_whatsapp(whatsapp),
+  UNIQUE KEY uq_active_rut_date(active_rut,reservation_date),
   CONSTRAINT fk_res_slot FOREIGN KEY(slot_id) REFERENCES time_slots(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -64,7 +67,6 @@ CREATE TABLE IF NOT EXISTS audit_logs(
   CONSTRAINT fk_audit_admin FOREIGN KEY(admin_id) REFERENCES admins(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Horarios base Lunes a Viernes (UUIDs fijos para que availability/reservations coincidan)
 INSERT IGNORE INTO schedule_templates(id,weekday,label,capacity,active) VALUES
  ('11111111-1111-1111-1111-111111111111',1,'Lunes',60,1),
  ('22222222-2222-2222-2222-222222222222',2,'Martes',60,1),

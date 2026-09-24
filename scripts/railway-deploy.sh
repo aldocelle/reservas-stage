@@ -6,15 +6,15 @@
 #
 # Variables opcionales:
 #   PROJECT=reservas-stage  SERVICE=app  WORKSPACE="Aldo Celle's Projects"
-#   ADMIN_EMAIL=admin@vinastage.cl  ADMIN_PASS=<clave 8+>  SEED_DEMO=1  PORT=8080
+#   ADMIN_EMAIL=demo@vinastage.cl  ADMIN_PASS=demo1234  SEED_DEMO=1  PORT=8080
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PROJECT="${PROJECT:-reservas-stage}"
 SERVICE="${SERVICE:-app}"
 PORT="${PORT:-8080}"
-ADMIN_EMAIL="${ADMIN_EMAIL:-admin@vinastage.cl}"
-ADMIN_PASS="${ADMIN_PASS:-Vinastage2026}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-demo@vinastage.cl}"
+ADMIN_PASS="${ADMIN_PASS:-demo1234}"
 SEED_DEMO="${SEED_DEMO:-1}"
 DB_SERVICE="${DB_SERVICE:-MySQL}"
 WORKSPACE_ARG=()

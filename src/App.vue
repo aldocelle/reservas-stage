@@ -1,10 +1,18 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import AdminPanel from './AdminPanel.vue';
-import { DEMO_ON, demoDaySlots, demoLoad, demoRange, demoReserve } from './demo';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
 import { bloqueInfo } from './blocks';
+import { formatRut, normalizeRut, rutError, sanitizeRutInput, validateRut } from './rut';
+
+const AdminPanel = defineAsyncComponent(() => import('./AdminPanel.vue'));
 
 const API=import.meta.env.VITE_API_BASE_URL||'/api';
+const API_MISSING=API==='/api'||!API;
+function apiError(prefix,response){
+  if(API_MISSING)return `${prefix}: el backend no está configurado en este despliegue. Configura VITE_API_BASE_URL con la URL pública de Railway.`;
+  const type=response.headers.get('content-type')||'';
+  if(type.includes('text/html'))return `${prefix}: el servidor devolvió la web en vez de JSON. Revisa que VITE_API_BASE_URL termine en /api y que el backend esté desplegado en Railway.`;
+  return `${prefix}: error del servidor (${response.status}).`;
+}
 const hashTick=ref(0);
 const route=computed(()=>{void hashTick.value;return window.location.hash||'#reservas'});
 const showAdmin=computed(()=>route.value.startsWith('#/admin'));
@@ -17,8 +25,7 @@ function onDeskChange(e){if(e.matches)menuOpen.value=false}
 onMounted(()=>{scrollClose=()=>{if(menuOpen.value)menuOpen.value=false;topScrolled.value=window.scrollY>10};window.addEventListener('scroll',scrollClose,{passive:true});deskMq=matchMedia('(min-width:761px)');deskMq.addEventListener('change',onDeskChange)})
 onUnmounted(()=>{if(scrollClose)window.removeEventListener('scroll',scrollClose);if(deskMq)deskMq.removeEventListener('change',onDeskChange)})
 const siteSettings=ref({site_name:'Viña Stage',hero_title:'VIÑA STAGE',booking_notice:''});
-const demoMode=ref(false);
-async function loadSettings(){if(demoMode.value){try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(e){}return}try{const r=await fetch(`${API}/public_settings.php`);const x=await r.json();if(!x.settings)throw Error('sin settings');siteSettings.value={...siteSettings.value,...(x.settings||{})}}catch(e){if(DEMO_ON){demoMode.value=true;try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(e2){}}}}
+async function loadSettings(){try{const r=await fetch(`${API}/public_settings.php`);if(!r.ok)throw Error(apiError('No se pudo conectar con el backend',r));const type=r.headers.get('content-type')||'';if(type.includes('text/html'))throw Error(apiError('No se pudo conectar con el backend',r));const x=await r.json();if(!x.settings)throw Error('El backend no devolvió la configuración del sitio');siteSettings.value={...siteSettings.value,...(x.settings||{})}}catch(e){error.value=e.message||'No se pudo conectar con el backend';loading.value=false}}
 const bookingOpen=computed(()=>siteSettings.value.booking_enabled!=='0');
 
 const names=['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES'];
@@ -27,7 +34,7 @@ const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','
 const avail=ref({}),selectedDate=ref(''),selectedSlot=ref(0),loading=ref(true),dayLoading=ref(false),saving=ref(false),error=ref('');
 const cal=ref({y:new Date().getFullYear(),m:new Date().getMonth()});
 const day=ref({date:'',name:'',slots:[],used:0,total:0});
-const form=ref({nombre:'',apellido:'',whatsapp:'',email:'',consent:true}),confirmation=ref(''),lastReservation=ref(null);
+const form=ref({nombre:'',apellido:'',rut:'',whatsapp:'',email:'',consent:true}),confirmation=ref(''),lastReservation=ref(null);
 const formErrors=ref({});
 const menuOpen=ref(false),topScrolled=ref(false);
 const events=[
@@ -38,6 +45,7 @@ const events=[
 ];
 const marqueeEvents=[...events,...events];
 function printPage(){window.print()}
+function onRutInput(event){form.value.rut=formatRut(sanitizeRutInput(event.target.value)); if (validateRut(form.value.rut)) delete formErrors.value.rut}
 
 const pad=n=>String(n).padStart(2,'0');
 function iso(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
@@ -70,15 +78,14 @@ async function loadMonth(preserve){
   const from=firstOfMonth(cal.value.y,cal.value.m),to=iso(new Date(cal.value.y,cal.value.m+1,0));
   try{
     const r=await fetch(`${API}/availability_range.php?from=${from}&to=${to}`);
-    if(!r.ok)throw Error(`Error del servidor (${r.status})`);
+    if(!r.ok)throw Error(apiError('No se pudo cargar la disponibilidad',r));
+    const type=r.headers.get('content-type')||'';if(type.includes('text/html'))throw Error(apiError('No se pudo cargar la disponibilidad',r));
     const x=await r.json();
     if(!Array.isArray(x.days))throw Error('Respuesta inválida de disponibilidad');
     const map={};for(const d of (x.days||[]))map[d.date]=d;
-    avail.value=map;demoMode.value=false;
+    avail.value=map;
   }catch(e){
-    if(!DEMO_ON){error.value=e.message}
-    else{demoMode.value=true;try{siteSettings.value={...siteSettings.value,...demoLoad().settings}}catch(se){}
-      const map={};for(const d of demoRange(from,to,minISO.value,iso(new Date())))map[d.date]=d;avail.value=map}
+    error.value=`No se pudo cargar la disponibilidad: ${e.message}`;
   }
   const firstBookable=cells.value.find(c=>!c.empty&&c.bookable);
   const keep=selectedDate.value&&avail.value[selectedDate.value]&&avail.value[selectedDate.value].bookable?selectedDate.value:'';
@@ -90,16 +97,15 @@ async function loadDay(date,keepConfirm){
   const a=avail.value[date]||{};
   day.value={date,name:dayName(date),slots:[],used:a.used||0,total:a.total||0};
   selectedSlot.value=-1;if(!keepConfirm)confirmation.value='';dayLoading.value=true;
-  if(demoMode.value)day.value={...day.value,slots:demoDaySlots(date)};
-  else try{
+  try{
     const r=await fetch(`${API}/availability.php?date=${date}`);
-    if(!r.ok)throw Error(`Error del servidor (${r.status})`);
+    if(!r.ok)throw Error(apiError('No se pudo cargar el día seleccionado',r));
+    const type=r.headers.get('content-type')||'';if(type.includes('text/html'))throw Error(apiError('No se pudo cargar el día seleccionado',r));
     const x=await r.json();
     if(!Array.isArray(x.slots))throw Error('Respuesta inválida de disponibilidad');
     day.value={...day.value,slots:x.slots||[]};
   }catch(e){
-    if(!DEMO_ON)error.value=e.message;
-    else{demoMode.value=true;day.value={...day.value,slots:demoDaySlots(date)}}
+    error.value=`No se pudo cargar el día seleccionado: ${e.message}`;
   }
   dayLoading.value=false;
   const i=day.value.slots.findIndex(s=>s.available>0);selectedSlot.value=i;
@@ -110,7 +116,8 @@ const bloqueSel=computed(()=>bloqueInfo(slot.value&&slot.value.start_time,slot.v
 const bloquesDelDia=computed(()=>(day.value.slots||[]).length);
 function pct(d){return d.total?Math.round(d.used/d.total*100):0}
 const hasAvailability=computed(()=>day.value.slots.some(s=>s.available>0));
-async function reserve(){if(saving.value||loading.value||dayLoading.value)return;if(!form.value.nombre||!form.value.apellido||!form.value.whatsapp||!slot.value)return;const digits=form.value.whatsapp.replace(/[\s\-.()]/g,'');if(!/^\+?\d{8,15}$/.test(digits)){error.value='WhatsApp inválido (8 a 15 dígitos)';return}if(form.value.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())){error.value='Email inválido';return}saving.value=true;error.value='';confirmation.value='';lastReservation.value=null;try{if(demoMode.value){confirmation.value=demoReserve(day.value.date,slot.value.slot_id,{nombre:form.value.nombre,apellido:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email},slot.value);lastReservation.value={code:confirmation.value,date:day.value.date,day:day.value.name,start:slot.value.start_time,end:slot.value.end_time,name:`${form.value.nombre} ${form.value.apellido}`,bloque:bloqueInfo(slot.value.start_time,slot.value.end_time).nombre};form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await loadMonth(true);return}const r=await fetch(`${API}/reservations.php`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:day.value.date,slotId:slot.value.slot_id,firstName:form.value.nombre,lastName:form.value.apellido,whatsapp:form.value.whatsapp,email:form.value.email,whatsappConsent:form.value.consent})});const x=await r.json().catch(()=>({}));if(!r.ok||!x.reservation)throw Error(x.error||'No fue posible crear la reserva');confirmation.value=x.reservation.reservation_code;lastReservation.value={code:confirmation.value,date:day.value.date,day:day.value.name,start:slot.value.start_time,end:slot.value.end_time,name:`${form.value.nombre} ${form.value.apellido}`,bloque:bloqueInfo(slot.value.start_time,slot.value.end_time).nombre};form.value={nombre:'',apellido:'',whatsapp:'',email:'',consent:true};await loadMonth(true)}catch(e){error.value=e.message||'No fue posible crear la reserva'}finally{saving.value=false}}
+async function reserve(){if(saving.value||loading.value||dayLoading.value)return;const rut=normalizeRut(form.value.rut);if(!validateRut(rut)){error.value=rutError();return}if(!form.value.nombre||!form.value.apellido||!form.value.whatsapp||!slot.value)return;const digits=form.value.whatsapp.replace(/[\s\-.()]/g,'');if(!/^\+?\d{8,15}$/.test(digits)){error.value='WhatsApp inválido (8 a 15 dígitos)';return}if(form.value.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())){error.value='Email inválido';return}saving.value=true;error.value='';confirmation.value='';lastReservation.value=null;try{
+const r=await fetch(`${API}/reservations.php`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:day.value.date,slotId:slot.value.slot_id,firstName:form.value.nombre,lastName:form.value.apellido,rut,whatsapp:form.value.whatsapp,email:form.value.email,whatsappConsent:form.value.consent})});const x=await r.json().catch(()=>({}));if(!r.ok||!x.reservation)throw Error(x.error||'No fue posible crear la reserva');confirmation.value=x.reservation.reservation_code;lastReservation.value={code:confirmation.value,date:day.value.date,day:day.value.name,start:slot.value.start_time,end:slot.value.end_time,name:`${form.value.nombre} ${form.value.apellido}`,bloque:bloqueInfo(slot.value.start_time,slot.value.end_time).nombre};form.value={nombre:'',apellido:'',rut:'',whatsapp:'',email:'',consent:true};await loadMonth(true)}catch(e){error.value=e.message||'No fue posible crear la reserva'}finally{saving.value=false}}
 onMounted(async()=>{await loadSettings();gotoMin();await loadMonth();window.addEventListener('hashchange',onHash)});
 onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 </script>
@@ -119,18 +126,23 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 <AdminPanel v-if="showAdmin" />
 <div v-else class="site">
 <header class="topbar" :class="{scrolled:topScrolled}">
-  <a class="brand" href="#reservas" aria-label="Viña Stage · inicio"><img class="brand-logo" src="/flyers/logo-stage.webp" alt="Viña Stage" width="400" height="210" decoding="async" fetchpriority="high"><span class="brand-tag"><b>CENTRO DE EVENTOS</b><small>VIÑA DEL MAR · CHILE</small></span></a>
+  <a class="brand" href="#reservas" aria-label="Viña Stage · inicio"><img class="brand-logo" src="/flyers/logo-stage.webp" alt="Viña Stage" width="400" height="210" decoding="async" fetchpriority="high"><span class="brand-tag"><b>MULTIESPACIO</b><small>VIÑA DEL MAR · CHILE</small></span></a>
   <nav id="mainnav" class="nav" :class="{open:menuOpen}">
     <a href="#reservas" :class="{active:navActive==='#reservas'}" @click="menuOpen=false">RESERVAS</a>
     <a href="#eventos" :class="{active:navActive==='#eventos'}" @click="menuOpen=false">CARTELERA</a>
     <a href="#contacto" :class="{active:navActive==='#contacto'}" @click="menuOpen=false">CONTACTO</a>
-    <a class="top-cta" href="#reservas" @click="menuOpen=false">RESERVAR <span class="cta-arrow" aria-hidden="true">→</span></a>
+    <a class="top-cta" href="#dia" @click="menuOpen=false">RESERVAR <span class="cta-arrow" aria-hidden="true">→</span></a>
   </nav>
   <button class="menu" :class="{open:menuOpen}" :aria-expanded="menuOpen?'true':'false'" aria-controls="mainnav" aria-label="Menú" @click="menuOpen=!menuOpen" @keyup.enter.space="menuOpen=!menuOpen"><span/><span/><span/></button>
   <transition name="fade"><div v-if="menuOpen" class="mobile-overlay" @click="menuOpen=false" aria-hidden="true"></div></transition>
 </header>
 
 <main>
+<section class="photo-hero" aria-labelledby="photo-hero-title">
+  <img class="photo-hero-image" src="/hero/stage%20hero.jpg" alt="Viña Stage Multiespacio: coctelería, gastronomía, música en vivo y terraza" width="1881" height="836" fetchpriority="high" decoding="async">
+  <h2 id="photo-hero-title" class="sr-only">Viña Stage Multiespacio en Viña del Mar</h2>
+</section>
+
 <section id="reservas" class="reservation-section">
   <!-- Reservas: la imagen de la promo manda; el calendario viene justo debajo. -->
   <div class="reservation-intro stage-hero" v-reveal="0">
@@ -142,10 +154,10 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
       </figure>
       <div class="stage-hero-info">
         <ul class="stage-hero-facts">
-          <li>📅 Lunes a viernes</li>
-          <li>🕐 14:00 a 20:00 Hrs.</li>
-          <li>⚠️ Solo 60 cupos diarios</li>
-          <li>🎓 TNE vigente</li>
+          <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 2v4M16 2v4M5 9h14M8 13h3M8 16h5"/></svg> Lunes a viernes</li>
+          <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg> 14:00 a 20:00 Hrs.</li>
+          <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg> Solo 60 cupos diarios</li>
+          <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 12v5c2.8 2.2 7.2 2.2 10 0v-5M21 9v6"/></svg> TNE vigente</li>
         </ul>
         <a class="stage-hero-cta" href="#dia">Reserva tu cupo <span aria-hidden="true">↓</span></a>
         <p class="stage-hero-note">Elige día y horario, completa tus datos y confirma tu reserva. Muestra tu código y tu TNE vigente al llegar a Viña Stage.</p>
@@ -154,12 +166,11 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
   </div>
   <div v-if="!bookingOpen" class="notice" role="alert">Reservas pausadas por el momento. {{siteSettings.booking_notice}}</div>
   <template v-else>
-  <section id="dia" class="panel day-panel" v-reveal="0.1"><div class="section-title">SELECCIONA UN DÍA</div><div class="cal-nav"><button type="button" :disabled="!canPrev" aria-label="Mes anterior" @click="moveMonth(-1)">‹</button><strong>{{monthLabel}}</strong><button type="button" :disabled="!canNext" aria-label="Mes siguiente" @click="moveMonth(1)">›</button></div><div class="cal-head"><span v-for="w in WEEK" :key="w">{{w}}</span></div><div v-if="loading" class="loading-row">Consultando disponibilidad…</div><template v-else><div class="cal-grid"><template v-for="c in cells" :key="c.key"><span v-if="c.empty" class="cal-cell empty" aria-hidden="true"></span><button v-else type="button" :class="['cal-cell',{active:c.date===selectedDate,off:!c.bookable,full:c.available<=0}]" :disabled="!c.bookable" :aria-pressed="c.date===selectedDate" :title="c.bookable?(c.available+' cupos disponibles'):'No disponible'" @click="selectDay(c.date)"><span class="cal-day">{{c.d}}</span><span class="cal-cupos">{{c.bookable?(c.used+'/'+c.total):'—'}}</span><span v-if="c.bookable" class="cal-bar"><i :style="{width:pct(c)+'%'}"></i></span></button></template></div><p v-if="!cells.some(c=>c.bookable)" class="empty-note">Sin días disponibles este mes. Revisa el mes siguiente.</p></template><p class="cal-note"><span v-if="startLabel">Reservas desde <b>{{startLabel}}</b> · </span>agenda abierta hasta <b>{{fechaCorta(maxISO())}}</b> · 3 bloques de 2 horas por día.</p></section>
-  <section class="panel schedule-panel" v-reveal="0.15"><div class="schedule-heading"><h2>BLOQUES DISPONIBLES <span>•</span> <strong>{{day.name}} {{fechaCorta(day.date)}}</strong></h2><div>{{bloquesDelDia}} bloque{{bloquesDelDia===1?'':'s'}} de 2 horas · Cupos del día: <b>{{day.used}}/{{day.total}}</b></div></div><div v-if="dayLoading" class="loading-row">Cargando bloques…</div><div v-else-if="!day.slots.length" class="empty-note">Sin bloques publicados para este día.</div><div v-else class="slots"><button v-for="(s,i) in slotsBloques" :key="s.slot_id" type="button" :disabled="s.available<=0" :class="['slot',{active:i===selectedSlot&&s.available>0,full:s.available<=0}]" :aria-pressed="i===selectedSlot&&s.available>0" @click="selectSlot(i)"><strong v-if="s.nombre">BLOQUE {{s.n}}<span class="solo-desktop"> · {{s.start_time}}</span></strong><strong v-else>{{s.start_time}} - {{s.end_time}}</strong><span class="slot-range">{{s.rango}}</span><span class="slot-cupos">{{s.available}} cupo{{s.available===1?'':'s'}}<span class="solo-desktop"> disponible{{s.available===1?'':'s'}}</span></span><span v-if="i===selectedSlot&&s.available>0" class="tick">✓</span></button></div></section>
-  <section class="panel form-panel" v-reveal="0.2"><div class="section-title">COMPLETA TUS DATOS</div><p v-if="slot" class="slot-chosen">Bloque elegido: <b>{{bloqueSel.nombre ? bloqueSel.nombre+' · ' : ''}}{{bloqueSel.rango}}</b> · {{day.name}} {{fechaCorta(day.date)}}</p><form @submit.prevent="reserve" novalidate><div class="form-grid"><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.nombre" required minlength="2" maxlength="80" autocomplete="given-name" placeholder="Nombre *"></label><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.apellido" required minlength="2" maxlength="80" autocomplete="family-name" placeholder="Apellido *"></label><label class="field"><span aria-hidden="true">⌕</span><input v-model.trim="form.whatsapp" required inputmode="tel" autocomplete="tel" maxlength="16" placeholder="WhatsApp *"></label><label class="field"><span aria-hidden="true">✉</span><input v-model.trim="form.email" type="email" autocomplete="email" maxlength="160" placeholder="Email (opcional)"></label></div><label class="consent"><input v-model="form.consent" type="checkbox"><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label><button class="reserve-btn" :class="{saving:saving}" type="submit" :disabled="saving || loading || dayLoading || !slot || (slot && slot.available<=0)"><span aria-hidden="true">▣</span> {{saving?'RESERVANDO...':'RESERVAR CUPO'}}</button></form></section>
-  <section v-if="confirmation" class="confirmation" role="status"><div class="check">✓</div><div><strong>¡Reserva confirmada!</strong><span v-if="lastReservation">A nombre de <b>{{lastReservation.name}}</b> · <b>{{lastReservation.day}} {{lastReservation.date}}</b> · <b>{{lastReservation.bloque ? lastReservation.bloque+' · ' : ''}}{{lastReservation.start}} a {{lastReservation.end}} Hrs.</b></span><span>Código de reserva: <b class="res-code">{{confirmation}}</b></span><span>Muestra este código al llegar. Si no puedes asistir, avísanos por WhatsApp.</span><span v-if="demoMode">Modo demostración: se guardó en este navegador.</span><button type="button" class="ghost-btn small confirmation-print" @click="printPage"><span aria-hidden="true">⎙</span> IMPRIMIR CÓDIGO</button></div></section>
+  <section id="dia" class="panel day-panel" v-reveal="0.1"><div class="section-title">SELECCIONA UN DÍA</div><div class="cal-nav"><button type="button" :disabled="!canPrev" aria-label="Mes anterior" @click="moveMonth(-1)">‹</button><strong>{{monthLabel}}</strong><button type="button" :disabled="!canNext" aria-label="Mes siguiente" @click="moveMonth(1)">›</button></div><div class="cal-head"><span v-for="w in WEEK" :key="w">{{w}}</span></div><div v-if="loading" class="loading-row">Consultando disponibilidad…</div><template v-else><div class="cal-grid"><template v-for="c in cells" :key="c.key"><span v-if="c.empty" class="cal-cell empty" aria-hidden="true"></span><button v-else type="button" :class="['cal-cell',{active:c.date===selectedDate,off:!c.bookable,full:c.available<=0}]" :disabled="!c.bookable" :aria-pressed="c.date===selectedDate" :title="c.bookable?(c.available+' cupos disponibles'):'No disponible'" @click="selectDay(c.date)"><span class="cal-day">{{c.d}}</span><span v-if="c.bookable" :class="['cal-availability',{warning:c.available<=20,empty:c.available<=0}]"><b>{{c.available}}</b><small>cupos disponibles</small></span><span v-else class="cal-unavailable" aria-hidden="true">—</span><span v-if="c.bookable" class="cal-bar"><i :style="{width:pct(c)+'%'}"></i></span></button></template></div><p v-if="!cells.some(c=>c.bookable)" class="empty-note">Sin días disponibles este mes. Revisa el mes siguiente.</p></template><p class="cal-note"><span v-if="startLabel">Reservas desde <b>{{startLabel}}</b> · </span>agenda abierta hasta <b>{{fechaCorta(maxISO())}}</b> · 3 bloques de 2 horas por día.</p></section>
+  <section class="panel schedule-panel" v-reveal="0.15"><div class="schedule-heading"><h2>BLOQUES DISPONIBLES <span>•</span> <strong>{{day.name}} {{fechaCorta(day.date)}}</strong></h2><div>{{bloquesDelDia}} bloque{{bloquesDelDia===1?'':'s'}} de 2 horas · Cupos del día: <b>{{day.used}}/{{day.total}}</b></div></div><div v-if="dayLoading" class="loading-row">Cargando bloques…</div><div v-else-if="!day.slots.length" class="empty-note">Sin bloques publicados para este día.</div><div v-else class="slots"><button v-for="(s,i) in slotsBloques" :key="s.slot_id" type="button" :disabled="s.available<=0" :class="['slot',{active:i===selectedSlot&&s.available>0,full:s.available<=0}]" :aria-pressed="i===selectedSlot&&s.available>0" @click="selectSlot(i)"><strong v-if="s.nombre">BLOQUE {{s.n}}<span class="solo-desktop"> · {{s.start_time}}</span></strong><strong v-else>{{s.start_time}} - {{s.end_time}}</strong><span class="slot-range">{{s.rango}}</span><span :class="['slot-cupos',{warning:s.available<=20,empty:s.available<=0}]"><b>{{s.available}}</b> {{s.available===1?'cupo disponible':'cupos disponibles'}}</span><span v-if="i===selectedSlot&&s.available>0" class="tick">✓</span></button></div></section>
+  <section class="panel form-panel" v-reveal="0.2"><div class="section-title">COMPLETA TUS DATOS</div><div v-if="day.date" class="slot-chosen" :class="{loading:dayLoading}" aria-label="Reserva seleccionada" aria-live="polite"><span class="slot-chosen-label">{{dayLoading?'Actualizando disponibilidad':'Tu reserva actual'}}</span><template v-if="slot"><strong>{{bloqueSel.nombre || 'Bloque seleccionado'}}<i v-if="bloqueSel.nombre"> · </i>{{bloqueSel.rango}}</strong></template><strong v-else-if="!dayLoading" class="slot-chosen-empty">Selecciona un bloque disponible</strong><span v-if="!slot&&dayLoading" class="slot-chosen-loading" aria-hidden="true">Cargando bloques…</span><span class="slot-chosen-date">{{day.name}} · {{fechaCorta(day.date)}}</span></div><form @submit.prevent="reserve" novalidate><div class="form-grid"><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.nombre" required minlength="2" maxlength="80" autocomplete="given-name" placeholder="Nombre *"></label><label class="field"><span aria-hidden="true">♙</span><input v-model.trim="form.apellido" required minlength="2" maxlength="80" autocomplete="family-name" placeholder="Apellido *"></label><label class="field"><span aria-hidden="true">▣</span>    <input v-model="form.rut" required inputmode="numeric" autocomplete="off" maxlength="12" placeholder="RUT *" @input="onRutInput"></label><label class="field"><span aria-hidden="true">⌕</span><input v-model.trim="form.whatsapp" required inputmode="tel" autocomplete="tel" maxlength="16" placeholder="WhatsApp *"></label><label class="field"><span aria-hidden="true">✉</span><input v-model.trim="form.email" type="email" autocomplete="email" maxlength="160" placeholder="Email (opcional)"></label></div><label class="consent"><input v-model="form.consent" type="checkbox"><span>Acepto recibir información de Viña Stage por WhatsApp.</span></label><button class="reserve-btn" :class="{saving:saving}" type="submit" :disabled="saving || loading || dayLoading || !slot || (slot && slot.available<=0)"><span aria-hidden="true">▣</span> {{saving?'RESERVANDO...':'RESERVAR CUPO'}}</button></form></section>
+  <section v-if="confirmation" class="confirmation" role="status"><div class="check">✓</div><div><strong>¡Reserva confirmada!</strong><span v-if="lastReservation">A nombre de <b>{{lastReservation.name}}</b> · <b>{{lastReservation.day}} {{lastReservation.date}}</b> · <b>{{lastReservation.bloque ? lastReservation.bloque+' · ' : ''}}{{lastReservation.start}} a {{lastReservation.end}} Hrs.</b></span><span>Código de reserva: <b class="res-code">{{confirmation}}</b></span><span>Muestra este código al llegar. Si no puedes asistir, avísanos por WhatsApp.</span><button type="button" class="ghost-btn small confirmation-print" @click="printPage"><span aria-hidden="true">⎙</span> IMPRIMIR CÓDIGO</button></div></section>
   <div v-if="error" class="notice" role="alert">{{error}}</div>
-  <div v-if="demoMode" class="notice demo-banner">Estás en modo demostración: los datos se guardan en tu navegador. Conecta el backend PHP/MySQL para producción.</div>
   </template>
 </section>
 
@@ -185,9 +196,10 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
       <span><small>DIRECCIÓN</small><strong>Av. Valparaíso 65<br>Viña del Mar, Chile</strong></span>
     </div>
     <div class="contact-ctas">
-      <a class="primary-btn" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">VER EN MAPA <span aria-hidden="true">↗</span></a>
       <a class="tickets-btn" href="https://portaldisc.com/cartelera/vinastage?utm_source=ig&amp;utm_medium=social&amp;utm_content=link_in_bio&amp;fbclid=PAZXh0bgNhZW0CMTEAcGRvZgJzcnRjBmFwcF9pZA85MzY2MTk3NDMzOTI0NTkAAae_jBc4N5jp5p2RUcRKlNLcsqjBEVnau2oozuMQjH5Yl1vDrk-GDCURS5VS6w_aem_48oI8thtPyZpwos43ufg6Q&amp;utm_id=97760_v0_s00_e0_tv3" target="_blank" rel="noreferrer">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V6Z"/><path d="M9 6v3M15 6v3M9 15v3M15 15v3"/></svg>
+        <span class="contact-detail-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V6Z"/><path d="M9 6v3M15 6v3M9 15v3M15 15v3"/></svg>
+        </span>
         <span><small>VENTA DE ENTRADAS</small><strong>COMPRAR PASSES</strong></span><span aria-hidden="true">↗</span>
       </a>
     </div>
@@ -211,10 +223,19 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
       </div>
     </div>
   </div>
-  <div class="contact-card" v-reveal="0.16" aria-label="Mapa de Av. Valparaíso 65, Viña del Mar"><div class="contact-map"><iframe :src="'https://www.google.com/maps?q=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar,+Chile&z=16&output=embed&hl=es'" title="Mapa de Av. Valparaíso 65, Viña del Mar" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a class="contact-map-link" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">ABRIR MAPA ↗</a></div></div>
+  <div class="contact-card" v-reveal="0.16" aria-label="Mapa de Av. Valparaíso 65, Viña del Mar">
+    <div class="contact-map"><iframe :src="'https://www.google.com/maps?q=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar,+Chile&z=16&output=embed&hl=es'" title="Mapa de Av. Valparaíso 65, Viña del Mar" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="map-sonar" aria-hidden="true"><i/><i/><i/><b/></div><a class="contact-map-link" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">ABRIR MAPA ↗</a></div>
+  </div>
 </section>
 </main>
 
-<footer><div class="footer-brand"><span class="crown">♛</span><strong>VIÑA<br>STAGE</strong><small>MÚSICA • AMIGOS • BUENA ONDA</small></div><div>Av. Valparaíso 65 · Viña del Mar · <a href="#/admin" class="admin-link">Admin</a></div></footer>
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand"><img class="footer-logo" src="/flyers/logo-stage.webp" alt="Viña Stage" width="400" height="210" loading="lazy" decoding="async"></div>
+    <nav class="footer-column footer-nav" aria-label="Navegación del footer"><small>EXPLORA</small><a href="#reservas">Reservas</a><a href="#eventos">Cartelera</a><a href="#contacto">Contacto</a></nav>
+    <div class="footer-column footer-contact"><small>ENCUÉNTRANOS</small><a href="mailto:eventos.vina.stage@gmail.com">eventos.vina.stage@gmail.com</a><span>Av. Valparaíso 65<br>Viña del Mar, Chile</span></div>
+  </div>
+  <div class="footer-bottom"><a href="#/admin" class="admin-link">Acceso admin <span aria-hidden="true">↗</span></a></div>
+</footer>
 </div>
 </template>
