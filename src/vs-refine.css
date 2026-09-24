@@ -172,11 +172,11 @@ button:disabled{cursor:not-allowed}
 .stage-hero.is-in::after{animation:draw .9s var(--ease-out-expo) .35s both}
 .stage-hero-tag{position:relative;z-index:2;display:flex;align-items:center;gap:10px;margin:0 0 clamp(10px,1.6vw,18px);color:var(--yellow);font-size:10px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase}
 .stage-hero-tag span{padding:4px 7px;background:var(--red);color:#fff;font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:0;line-height:1}
-.stage-hero-body{position:relative;z-index:2;display:grid;grid-template-columns:minmax(260px,430px) minmax(0,1fr);gap:clamp(20px,2.4vw,34px);align-items:center;margin-top:clamp(14px,2vw,24px);padding-top:clamp(18px,2.2vw,28px);border-top:1px solid var(--line)}
-.stage-hero-poster{position:relative;margin:0;border:1px solid var(--line-strong);background:#0a0a0a;box-shadow:none}
+.stage-hero-body{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(20px,2.4vw,34px);align-items:center;margin-top:clamp(14px,2vw,24px);padding-top:clamp(18px,2.2vw,28px);border-top:1px solid var(--line)}
+.stage-hero-poster{position:relative;width:100%;max-width:none;margin:0 auto;border:1px solid var(--line-strong);background:#0a0a0a;box-shadow:none}
 .stage-hero-banner{display:block;width:100%;height:auto}
-.stage-hero-info{min-width:0}
-.stage-hero-facts{display:flex;flex-wrap:wrap;gap:9px;margin:0;padding:0;list-style:none}
+.stage-hero-info{width:min(100%,760px);min-width:0;margin:0 auto;text-align:center}
+.stage-hero-facts{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;margin:0;padding:0;list-style:none}
 .stage-hero-facts li{padding:9px 13px;border:1px solid var(--line-strong);color:var(--text);font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase}
 .stage-hero-facts li:first-child{border-color:var(--yellow);background:var(--yellow);color:#0a0a0a}
 .stage-hero-cta{display:inline-flex;align-items:center;gap:12px;margin-top:clamp(16px,2vw,22px);padding:13px 22px;border:1px solid var(--red);background:var(--red);color:#fff;font-family:var(--display);font-size:23px;font-weight:800;letter-spacing:1.4px;line-height:1;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s,border-color .2s}
@@ -314,7 +314,7 @@ footer a{color:var(--yellow)}
   .admin-filters .ghost-btn{justify-self:start}
   .contact-section{gap:38px}
   .stage-hero-body{grid-template-columns:1fr;gap:22px}
-  .stage-hero-poster{max-width:440px;margin:0 auto}
+  .stage-hero-poster{max-width:none;margin:0 auto}
 }
 @media(max-width:760px){
   :root{--topbar-h:74px}
