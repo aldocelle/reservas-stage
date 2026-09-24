@@ -175,7 +175,42 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 </section>
 
 <section id="contacto" class="contact-section">
-  <div v-reveal="0.08"><p class="eyebrow">CONTACTO</p><h2>ENCUÉNTRANOS<br><strong>EN VIÑA.</strong></h2><p>Av. Valparaíso 65<br>Viña del Mar, Chile</p><a class="primary-btn" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">VER EN MAPA ↗</a></div>
+  <div class="contact-intro" v-reveal="0.08">
+    <p class="eyebrow">CONTACTO</p>
+    <h2>ENCUÉNTRANOS<br><strong>EN VIÑA.</strong></h2>
+    <div class="contact-address">
+      <span class="contact-detail-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      </span>
+      <span><small>DIRECCIÓN</small><strong>Av. Valparaíso 65<br>Viña del Mar, Chile</strong></span>
+    </div>
+    <div class="contact-ctas">
+      <a class="primary-btn" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">VER EN MAPA <span aria-hidden="true">↗</span></a>
+      <a class="tickets-btn" href="https://portaldisc.com/cartelera/vinastage?utm_source=ig&amp;utm_medium=social&amp;utm_content=link_in_bio&amp;fbclid=PAZXh0bgNhZW0CMTEAcGRvZgJzcnRjBmFwcF9pZA85MzY2MTk3NDMzOTI0NTkAAae_jBc4N5jp5p2RUcRKlNLcsqjBEVnau2oozuMQjH5Yl1vDrk-GDCURS5VS6w_aem_48oI8thtPyZpwos43ufg6Q&amp;utm_id=97760_v0_s00_e0_tv3" target="_blank" rel="noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V6Z"/><path d="M9 6v3M15 6v3M9 15v3M15 15v3"/></svg>
+        <span><small>VENTA DE ENTRADAS</small><strong>COMPRAR PASSES</strong></span><span aria-hidden="true">↗</span>
+      </a>
+    </div>
+    <a class="contact-email" href="mailto:eventos.vina.stage@gmail.com">
+      <span class="contact-detail-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="m4 7 8 6 8-6"/></svg>
+      </span>
+      <span><small>ESCRÍBENOS</small><strong>eventos.vina.stage@gmail.com</strong></span><span aria-hidden="true">↗</span>
+    </a>
+    <div class="contact-socials" aria-label="Redes sociales de Viña Stage">
+      <small>SÍGUENOS</small>
+      <div>
+        <a class="social-link" href="https://www.instagram.com/vinastage" target="_blank" rel="noreferrer" aria-label="Instagram de Viña Stage">
+          <svg class="instagram-icon" viewBox="0 0 24 24" role="img" aria-label="Instagram"><defs><linearGradient id="instagram-gradient" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD400"/><stop offset=".5" stop-color="#FF4438"/><stop offset="1" stop-color="#BC2BC3"/></linearGradient></defs><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+          <span>Instagram</span>
+        </a>
+        <a class="social-link" href="https://www.facebook.com/profile.php?id=61586113003789&amp;ref=PROFILE_EDIT_xav_ig_profile_page_web" target="_blank" rel="noreferrer" aria-label="Facebook de Viña Stage">
+          <svg class="facebook-icon" viewBox="0 0 24 24" role="img" aria-label="Facebook"><defs><linearGradient id="facebook-gradient" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#18A8FB"/><stop offset=".55" stop-color="#1877F2"/><stop offset="1" stop-color="#E10600"/></linearGradient></defs><path d="M14.2 22v-9h3l.5-3.6h-3.5V7.2c0-1 .3-1.8 1.9-1.8h1.8V2.1A25 25 0 0 0 15.1 2c-2.9 0-4.9 1.8-4.9 5.1v2.3H7.3V13h2.9v9h4Z"/></svg>
+          <span>Facebook</span>
+        </a>
+      </div>
+    </div>
+  </div>
   <div class="contact-card" v-reveal="0.16" aria-label="Mapa de Av. Valparaíso 65, Viña del Mar"><div class="contact-map"><iframe :src="'https://www.google.com/maps?q=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar,+Chile&z=16&output=embed&hl=es'" title="Mapa de Av. Valparaíso 65, Viña del Mar" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a class="contact-map-link" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">ABRIR MAPA ↗</a></div></div>
 </section>
 </main>
