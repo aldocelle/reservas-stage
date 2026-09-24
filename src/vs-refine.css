@@ -68,14 +68,9 @@ button:disabled{cursor:not-allowed}
 .event-stage.held .event-track{animation-play-state:paused}
 .event-track .event-card{position:relative;left:auto;top:auto;flex:0 0 auto;width:280px;height:390px;margin:0;transform:none;opacity:1;transition:none;border:1px solid var(--line);border-top:3px solid var(--yellow);border-radius:0;box-shadow:none;background:#101010;color:var(--text);overflow:hidden}
 .event-card.orange,.event-card.red{border-top-color:var(--red)}
-.event-card:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.85));opacity:1}
-.flyer-img{object-fit:cover;object-position:center top;filter:grayscale(.4) contrast(1.05) brightness(.85);mix-blend-mode:normal;opacity:.92}
-.event-card:has(.flyer-img) .flyer-noise{opacity:0}
-.event-card:has(.flyer-img) .flyer-content{display:block;position:absolute;left:18px;right:18px;bottom:46px;z-index:2;color:var(--text)}
-.event-card:has(.flyer-img) .flyer-content h3{color:var(--text)}
-.event-card:has(.flyer-img) .flyer-content p{color:var(--yellow)}
-.event-card .flyer-mark{top:15px;left:15px;padding:7px 9px;background:var(--yellow);color:#0a0a0a;border:1px solid #0a0a0a;border-radius:0;font-size:10px;font-weight:800;letter-spacing:1.5px}
-.event-card .flyer-footer{bottom:0;left:0;right:0;padding:13px 15px;background:rgba(0,0,0,.85);color:var(--text);font-size:9px;font-weight:700;letter-spacing:1.1px}
+.event-card:before{display:none}
+.flyer-img{object-fit:cover;object-position:center top;filter:none;mix-blend-mode:normal;opacity:1}
+.event-card .flyer-noise,.event-card .flyer-content,.event-card .flyer-footer,.event-card .flyer-mark{display:none}
 .event-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;max-width:1252px;margin:0;padding:0;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
 /* Alinea la meta de cartelera con el titular y el track (styles.css le dejaba padding propio) */
 .events-section .event-meta{max-width:1252px;margin:0;padding:0}

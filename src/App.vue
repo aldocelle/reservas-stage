@@ -29,7 +29,6 @@ const cal=ref({y:new Date().getFullYear(),m:new Date().getMonth()});
 const day=ref({date:'',name:'',slots:[],used:0,total:0});
 const form=ref({nombre:'',apellido:'',whatsapp:'',email:'',consent:true}),confirmation=ref(''),lastReservation=ref(null);
 const formErrors=ref({});
-const carouselHeld=ref(false);
 const menuOpen=ref(false),topScrolled=ref(false);
 const events=[
   {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE',image:'/flyers/live-session.webp'},
@@ -38,12 +37,6 @@ const events=[
   {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE',image:'/flyers/stage-up.webp'}
 ];
 const marqueeEvents=[...events,...events];
-function holdCarousel(e){carouselHeld.value=true;try{const t=e.currentTarget;if(t&&t.setPointerCapture&&e.pointerId!=null)t.setPointerCapture(e.pointerId)}catch(_){}}
-function releaseCarousel(){carouselHeld.value=false}
-// La cartelera también se puede fijar detenida desde un botón (teclado, tacto y lectores de pantalla).
-const marqueePinned=ref(false);
-const marqueePaused=computed(()=>carouselHeld.value||marqueePinned.value);
-function toggleMarquee(){marqueePinned.value=!marqueePinned.value}
 function printPage(){window.print()}
 
 const pad=n=>String(n).padStart(2,'0');
@@ -172,15 +165,13 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 
 <section id="eventos" class="events-section">
   <div class="section-head" v-reveal="0.05"><div><p class="eyebrow">CARTELERA / 02</p><h2>LO QUE PASA<br><strong>EN STAGE</strong></h2></div><p class="section-dek">Una noche puede empezar con una canción, una risa o una idea que se te ocurra después.</p><span class="section-index" aria-hidden="true">02<br><b>PROGRAMACIÓN</b></span></div>
-  <div class="event-stage" v-reveal="0.12" :class="{held:marqueePaused}" role="region" aria-roledescription="carrusel" aria-label="Cartelera de eventos" @pointerdown="holdCarousel" @pointerup="releaseCarousel" @pointercancel="releaseCarousel" @pointerleave="releaseCarousel" @dragstart.prevent @contextmenu.prevent>
+  <div class="event-stage" v-reveal="0.12" role="region" aria-roledescription="carrusel" aria-label="Cartelera de eventos">
     <div class="event-track">
       <article v-for="(event,i) in marqueeEvents" :key="event.id+'-'+i" :class="['event-card',event.tone]" :aria-hidden="i>=events.length">
         <img v-if="event.image" :src="event.image" :alt="event.title" class="flyer-img" loading="lazy" draggable="false" @error="event.image=''" />
-        <div class="flyer-noise"></div><span class="flyer-mark">{{event.mark}}</span><div class="flyer-content"><small>{{event.date}}</small><h3>{{event.title}}</h3><p>{{event.type}}</p></div><div class="flyer-footer">VIÑA STAGE · AV. VALPARAÍSO 65</div>
       </article>
     </div>
   </div>
-  <div class="event-meta" v-reveal="0.18"><div class="event-meta-status"><span class="live-dot" :class="{paused:marqueePaused}" aria-hidden="true"></span> {{marqueePaused ? 'CARTELERA DETENIDA · PULSA «REANUDAR» PARA CONTINUAR' : 'CARTELERA EN MOVIMIENTO · MANTÉN PRESIONADO PARA DETENER'}}</div><button type="button" class="marquee-toggle" :aria-pressed="marqueePinned" @click="toggleMarquee">{{marqueePinned ? 'REANUDAR' : 'DETENER'}}</button></div>
 </section>
 
 <section id="contacto" class="contact-section">
