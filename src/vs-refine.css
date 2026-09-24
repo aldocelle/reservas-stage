@@ -184,19 +184,15 @@ button:disabled{cursor:not-allowed}
 .stage-hero-note{margin:14px 0 0;max-width:48ch;color:var(--muted);font-size:12px;line-height:1.55}
 /* Contacto y pie */
 .contact-section{max-width:none;margin:0;padding:104px max(34px,calc((100vw - 1252px)/2));display:grid;grid-template-columns:1fr 1fr;gap:70px;border-top:1px solid var(--line);background:var(--bg-soft);color:var(--text)}
-.contact-section h2{font-size:clamp(70px,8vw,120px)}
+.contact-section h2{max-width:100%;font-size:clamp(64px,6.5vw,100px);overflow-wrap:normal}
 .contact-section p{color:var(--muted)}
 .primary-btn{display:inline-flex;align-items:center;min-height:46px;padding:12px 20px;border:1px solid var(--red);border-radius:0;background:var(--red);color:#fff;font-size:11px;font-weight:800;letter-spacing:1.4px;text-decoration:none;transition:background .2s,color .2s,border-color .2s}
 .primary-btn:hover{background:var(--yellow);border-color:var(--yellow);color:#0a0a0a}
-.contact-card{display:flex;flex-direction:column;min-height:330px;padding:34px;border:1px solid var(--line);border-radius:0;background:#101010;color:var(--text);box-shadow:none;position:relative;overflow:hidden}
-.contact-card:before{content:"";position:absolute;right:-40px;bottom:-50px;width:220px;height:220px;border:1px solid rgba(225,6,0,.55);border-radius:50%;opacity:.7}
-.contact-card small,.contact-card strong{position:relative;z-index:1;display:block;margin-top:18px;letter-spacing:2px}
-.contact-card small{color:var(--yellow)}
-.contact-card p{position:relative;z-index:1;color:var(--muted);font-size:12px}
-.contact-card .contact-icon{color:var(--red);font-size:26px}
-.contact-map{position:relative;height:165px;margin-top:auto}
-.contact-map iframe{position:absolute;left:0;right:0;bottom:0;width:100%;height:165px;border:1px solid var(--line);border-radius:0;background:#0d0d0d;filter:invert(.94) grayscale(.5) contrast(.95);pointer-events:none}
-.contact-map-link{position:absolute;right:8px;bottom:8px;z-index:2;padding:7px 10px;background:var(--yellow);color:#0a0a0a;font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s}
+.contact-card{min-height:330px;padding:0;border:1px solid var(--line);border-radius:0;background:#101010;color:var(--text);box-shadow:none;position:relative;overflow:hidden}
+.contact-card:before{content:"";position:absolute;right:-40px;bottom:-50px;width:220px;height:220px;border:1px solid rgba(225,6,0,.55);border-radius:50%;opacity:.7;z-index:2;pointer-events:none}
+.contact-map{position:absolute;inset:0;width:100%;height:100%}
+.contact-map iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:#0d0d0d;filter:invert(.94) grayscale(.5) contrast(.95);pointer-events:none}
+.contact-map-link{position:absolute;right:8px;bottom:8px;z-index:3;padding:7px 10px;background:var(--yellow);color:#0a0a0a;font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s}
 .contact-map-link:hover{background:var(--red);color:#fff}
 footer{max-width:none;margin:0;padding:28px max(34px,calc((100vw - 1252px)/2)) 38px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--bg-soft);color:var(--muted);font-size:11px}
 footer .footer-brand{color:var(--text);font-family:var(--display);font-size:24px;font-style:normal;font-weight:800;line-height:.75;text-transform:uppercase}
@@ -360,7 +356,7 @@ footer a{color:var(--yellow)}
   .stage-hero-cta{width:100%;justify-content:center;font-size:20px}
   .stage-hero-note{font-size:11px}
   .contact-section{grid-template-columns:1fr;padding:76px 16px 90px;gap:35px}
-  .contact-card{min-height:260px;padding:25px}
+  .contact-card{min-height:280px;padding:0}
   footer{padding:24px 16px 30px;align-items:flex-start;flex-direction:column}
   footer{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   .footer-brand small{display:none}
@@ -399,8 +395,8 @@ footer a{color:var(--yellow)}
 @media(min-width:761px) and (max-width:1023px){
   .section-head{gap:24px}
   .section-dek{max-width:270px}
-  .contact-section h2{font-size:clamp(54px,7vw,84px)}
-  .contact-card{min-height:300px;padding:28px}
+  .contact-section h2{font-size:clamp(54px,6.5vw,68px)}
+  .contact-card{min-height:300px;padding:0}
   .admin-top h1{font-size:54px}
 }
 

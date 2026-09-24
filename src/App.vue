@@ -176,7 +176,7 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 
 <section id="contacto" class="contact-section">
   <div v-reveal="0.08"><p class="eyebrow">CONTACTO</p><h2>ENCUÉNTRANOS<br><strong>EN VIÑA.</strong></h2><p>Av. Valparaíso 65<br>Viña del Mar, Chile</p><a class="primary-btn" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">VER EN MAPA ↗</a></div>
-  <div class="contact-card" v-reveal="0.16"><span class="contact-icon">⌖</span><small>UBICACIÓN</small><strong>AV. VALPARAÍSO 65</strong><p>En pleno centro de Viña del Mar.</p><div class="contact-map"><iframe :src="'https://www.google.com/maps?q=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar,+Chile&z=16&output=embed&hl=es'" title="Mapa de Av. Valparaíso 65, Viña del Mar" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a class="contact-map-link" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">ABRIR MAPA ↗</a></div></div>
+  <div class="contact-card" v-reveal="0.16" aria-label="Mapa de Av. Valparaíso 65, Viña del Mar"><div class="contact-map"><iframe :src="'https://www.google.com/maps?q=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar,+Chile&z=16&output=embed&hl=es'" title="Mapa de Av. Valparaíso 65, Viña del Mar" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a class="contact-map-link" href="https://www.google.com/maps/search/?api=1&query=Av.+Valpara%C3%ADso+65,+Vi%C3%B1a+del+Mar" target="_blank" rel="noreferrer">ABRIR MAPA ↗</a></div></div>
 </section>
 </main>
 
