@@ -32,10 +32,10 @@ const formErrors=ref({});
 const carouselHeld=ref(false);
 const menuOpen=ref(false),topScrolled=ref(false);
 const events=[
-  {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE',image:'flyers/live-session.jpg'},
-  {id:2,date:'PRÓXIMAMENTE',title:'STAGE COMEDY',type:'COMEDIA EN VIVO',tone:'orange',mark:'COMEDY',image:'flyers/stage-comedy.jpg'},
-  {id:3,date:'PRÓXIMAMENTE',title:'NIGHT STAGE',type:'NOCHE DE EVENTOS',tone:'violet',mark:'NIGHT',image:'flyers/night-stage.jpg'},
-  {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE',image:'flyers/stage-up.jpg'}
+  {id:1,date:'PRÓXIMAMENTE',title:'LIVE SESSION',type:'MÚSICA EN VIVO',tone:'lime',mark:'LIVE',image:'/flyers/live-session.webp'},
+  {id:2,date:'PRÓXIMAMENTE',title:'STAGE COMEDY',type:'COMEDIA EN VIVO',tone:'orange',mark:'COMEDY',image:'/flyers/stage-comedy.webp'},
+  {id:3,date:'PRÓXIMAMENTE',title:'NIGHT STAGE',type:'NOCHE DE EVENTOS',tone:'violet',mark:'NIGHT',image:'/flyers/night-stage.webp'},
+  {id:4,date:'PRÓXIMAMENTE',title:'STAGE UP',type:'EXPERIENCIAS EN VIVO',tone:'red',mark:'STAGE',image:'/flyers/stage-up.webp'}
 ];
 const marqueeEvents=[...events,...events];
 function holdCarousel(e){carouselHeld.value=true;try{const t=e.currentTarget;if(t&&t.setPointerCapture&&e.pointerId!=null)t.setPointerCapture(e.pointerId)}catch(_){}}
@@ -126,7 +126,7 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
 <AdminPanel v-if="showAdmin" />
 <div v-else class="site">
 <header class="topbar" :class="{scrolled:topScrolled}">
-  <a class="brand" href="#reservas" aria-label="Viña Stage · inicio"><img class="brand-logo" :src="'flyers/logo%20stage.png'" alt="Viña Stage" width="1165" height="610" decoding="async" fetchpriority="high"><span class="brand-tag"><b>CENTRO DE EVENTOS</b><small>VIÑA DEL MAR · CHILE</small></span></a>
+  <a class="brand" href="#reservas" aria-label="Viña Stage · inicio"><img class="brand-logo" src="/flyers/logo-stage.webp" alt="Viña Stage" width="400" height="210" decoding="async" fetchpriority="high"><span class="brand-tag"><b>CENTRO DE EVENTOS</b><small>VIÑA DEL MAR · CHILE</small></span></a>
   <nav id="mainnav" class="nav" :class="{open:menuOpen}">
     <a href="#reservas" :class="{active:navActive==='#reservas'}" @click="menuOpen=false">RESERVAS</a>
     <a href="#eventos" :class="{active:navActive==='#eventos'}" @click="menuOpen=false">CARTELERA</a>
@@ -145,7 +145,7 @@ onUnmounted(()=>{window.removeEventListener('hashchange',onHash)});
     <p class="stage-hero-tag"><span aria-hidden="true">01</span> Reservas · Promo Estudiante</p>
     <div class="stage-hero-body">
       <figure class="stage-hero-poster">
-        <img class="stage-hero-banner" :src="'flyers/reservas.png'" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736" loading="lazy" decoding="async">
+        <img class="stage-hero-banner" src="/flyers/reservas.webp" alt="Promo Estudiante Viña Stage: 2 Schop Cristal + Pizza Individual por $5.000, lunes a viernes de 14:00 a 20:00 Hrs., solo 60 cupos diarios y TNE vigente." width="1408" height="736" loading="lazy" decoding="async">
       </figure>
       <div class="stage-hero-info">
         <ul class="stage-hero-facts">

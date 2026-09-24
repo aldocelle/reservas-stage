@@ -104,6 +104,20 @@ En el modo real web y API quedan en dominios distintos, así que en el backend h
 
 Qué hace `vercel.json` además del build: caché inmutable (`max-age=31536000, immutable`) para `/assets/*`, porque cada build de Vite genera hashes nuevos; `index.html` siempre revalidado (un deploy nuevo se ve al instante); `/flyers/*` con 1 día + `stale-while-revalidate`; headers de seguridad (`nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, HSTS); y el rewrite `/(.*)` → `/index.html` al final, que es el fallback del SPA (usa hash routing). No se define `Content-Security-Policy` porque `VITE_API_BASE_URL` es configurable y el mapa de contacto es un iframe externo: agrégala con `connect-src`/`frame-src` explícitos si la quieres.
 
+Imágenes: los flyers de `public/flyers/` se publican en WebP ajustados al tamaño real en que se ven (los originales quedan solo en `design/flyers-origen/originales/`, fuera de git y fuera del deploy). El logo se convierte a RGB porque se renderiza sobre el fondo negro de la cabecera; no usa transparencia. Para regenerarlos o añadir flyers nuevos:
+
+```bash
+cd public/flyers
+# tarjetas del carrusel (se ven a 300×425 px): 820 px de ancho alcanza para pantallas retina
+cwebp -q 80 -m 6 -metadata none -resize 820 0 evento.jpg -o evento.webp
+# logo del header (se ve a 50 px de alto; se renderiza sobre fondo negro)
+cwebp -q 90 -m 6 -metadata none -resize 400 0 logo.png -o logo.webp
+# banner de la promo (tiene texto: calidad alta y sin resize)
+cwebp -q 85 -m 6 -sharp_yuv -metadata none banner.png -o banner.webp
+```
+
+Usa nombres sin espacios (así se evita el `logo%20stage.png` que complicaba la URL) y cambia la extensión a `.webp` en `src/App.vue`. `favicon.png` sigue en PNG: son 41 KB y cuantizarlo solo ahorraba 8 KB degradando el logo.
+
 > Opción «todo en Vercel»: los endpoints PHP pueden correr como funciones con el runtime comunitario `vercel-php@0.9.0` (`"functions": { "api/*.php": { "runtime": "vercel-php@0.9.0" } }`). Requiere MySQL externo, quitar `api` de `.vercelignore` y pasar las sesiones en fichero a sesiones en base de datos (en serverless no hay disco compartido), así que no es la ruta recomendada para este MVP.
 
 ## Estructura
