@@ -28,7 +28,7 @@ if (($method === 'PATCH' || $method === 'PUT') && count($parts) === 1) {
   if ($label === '' || mb_strlen($label) > 30) respond(['error' => 'Nombre inválido (1-30)'], 422);
   if ($capacity < 1 || $capacity > 500) respond(['error' => 'Capacidad 1-500'], 422);
   // El frontend calcula los cupos del día SUMANDO los bloques (time_slots), así que la
-  // "Capacidad día" se reparte entre los bloques activos para que se refleje (60 => 20+20+20).
+  // "Capacidad día" se reparte entre los bloques activos para que se refleje (40 => 20+20).
   $sq = $pdo->prepare("SELECT id FROM time_slots WHERE template_id=? AND active=1 ORDER BY start_time");
   $sq->execute([$id]);
   $activeSlots = $sq->fetchAll();

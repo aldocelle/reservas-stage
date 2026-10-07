@@ -45,7 +45,7 @@
 .admin-table .bloque-tag{color:#e10600;font-weight:700}
 
 .slot .solo-desktop{display:inline;margin-top:0}
-/* Responsive: los 5 dias y los 3 bloques siempre visibles */
+/* Responsive: los 5 dias y los 2 bloques siempre visibles */
 .day-name .short,.day-date .short{display:none}
 @media(max-width:760px){
 .days{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;overflow:visible}
@@ -58,7 +58,7 @@
 .ring:before{inset:4px}
 .ring-content{font-size:10px;line-height:1.1}
 .ring-content small{display:none}
-.slots{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.slots{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .slot{min-height:100px;padding:10px 8px;border-radius:9px}
 .slot strong{font-size:10.5px;letter-spacing:.3px;line-height:1.15}
 .slot .slot-range{font-size:9px;margin-top:5px;line-height:1.3}
@@ -120,4 +120,5 @@
 @media(max-width:980px){.event-track .event-card{width:270px;height:385px}}
 @media(max-width:760px){.events-section .section-head{padding:0 18px}.event-track .event-card{width:230px;height:325px;margin-right:12px}}
 @media(prefers-reduced-motion:reduce){.event-track{animation:none}}
+@media (max-width:760px){.menu{width:44px;height:44px}}
 

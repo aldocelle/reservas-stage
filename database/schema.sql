@@ -67,26 +67,61 @@ CREATE TABLE IF NOT EXISTS audit_logs(
   CONSTRAINT fk_audit_admin FOREIGN KEY(admin_id) REFERENCES admins(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Horario oficial: lunes a viernes, 2 bloques de 3 horas (14:00–17:00 y 17:00–20:00), 20 cupos cada uno = 40 diarios.
 INSERT IGNORE INTO schedule_templates(id,weekday,label,capacity,active) VALUES
- ('11111111-1111-1111-1111-111111111111',1,'Lunes',60,1),
- ('22222222-2222-2222-2222-222222222222',2,'Martes',60,1),
- ('33333333-3333-3333-3333-333333333333',3,'Miércoles',60,1),
- ('44444444-4444-4444-4444-444444444444',4,'Jueves',60,1),
- ('55555555-5555-5555-5555-555555555555',5,'Viernes',60,1);
+ ('11111111-1111-1111-1111-111111111111',1,'Lunes',40,1),
+ ('22222222-2222-2222-2222-222222222222',2,'Martes',40,1),
+ ('33333333-3333-3333-3333-333333333333',3,'Miércoles',40,1),
+ ('44444444-4444-4444-4444-444444444444',4,'Jueves',40,1),
+ ('55555555-5555-5555-5555-555555555555',5,'Viernes',40,1);
 
 INSERT IGNORE INTO time_slots(id,template_id,start_time,end_time,capacity,active) VALUES
- ('a1111111-1111-1111-1111-111111111111','11111111-1111-1111-1111-111111111111','14:00','16:00',20,1),
- ('a1111111-1111-1111-1111-111111111112','11111111-1111-1111-1111-111111111111','16:00','18:00',20,1),
- ('a1111111-1111-1111-1111-111111111113','11111111-1111-1111-1111-111111111111','18:00','20:00',20,1),
- ('a2222222-2222-2222-2222-222222222221','22222222-2222-2222-2222-222222222222','14:00','16:00',20,1),
- ('a2222222-2222-2222-2222-222222222222','22222222-2222-2222-2222-222222222222','16:00','18:00',20,1),
- ('a2222222-2222-2222-2222-222222222223','22222222-2222-2222-2222-222222222222','18:00','20:00',20,1),
- ('a3333333-3333-3333-3333-333333333331','33333333-3333-3333-3333-333333333333','14:00','16:00',20,1),
- ('a3333333-3333-3333-3333-333333333332','33333333-3333-3333-3333-333333333333','16:00','18:00',20,1),
- ('a3333333-3333-3333-3333-333333333333','33333333-3333-3333-3333-333333333333','18:00','20:00',20,1),
- ('a4444444-4444-4444-4444-444444444441','44444444-4444-4444-4444-444444444444','14:00','16:00',20,1),
- ('a4444444-4444-4444-4444-444444444442','44444444-4444-4444-4444-444444444444','16:00','18:00',20,1),
- ('a4444444-4444-4444-4444-444444444443','44444444-4444-4444-4444-444444444444','18:00','20:00',20,1),
- ('a5555555-5555-5555-5555-555555555551','55555555-5555-5555-5555-555555555555','14:00','16:00',20,1),
- ('a5555555-5555-5555-5555-555555555552','55555555-5555-5555-5555-555555555555','16:00','18:00',20,1),
- ('a5555555-5555-5555-5555-555555555553','55555555-5555-5555-5555-555555555555','18:00','20:00',20,1);
+ ('a1111111-1111-1111-1111-111111111111','11111111-1111-1111-1111-111111111111','14:00','17:00',20,1),
+ ('a1111111-1111-1111-1111-111111111112','11111111-1111-1111-1111-111111111111','17:00','20:00',20,1),
+ ('a2222222-2222-2222-2222-222222222221','22222222-2222-2222-2222-222222222222','14:00','17:00',20,1),
+ ('a2222222-2222-2222-2222-222222222222','22222222-2222-2222-2222-222222222222','17:00','20:00',20,1),
+ ('a3333333-3333-3333-3333-333333333331','33333333-3333-3333-3333-333333333333','14:00','17:00',20,1),
+ ('a3333333-3333-3333-3333-333333333332','33333333-3333-3333-3333-333333333333','17:00','20:00',20,1),
+ ('a4444444-4444-4444-4444-444444444441','44444444-4444-4444-4444-444444444444','14:00','17:00',20,1),
+ ('a4444444-4444-4444-4444-444444444442','44444444-4444-4444-4444-444444444444','17:00','20:00',20,1),
+ ('a5555555-5555-5555-5555-555555555551','55555555-5555-5555-5555-555555555555','14:00','17:00',20,1),
+ ('a5555555-5555-5555-5555-555555555552','55555555-5555-5555-5555-555555555555','17:00','20:00',20,1);
+
+-- Conversión de instalaciones existentes: 3 bloques de 2 horas (14-16 / 16-18 / 18-20, 20 cupos) -> 2 bloques de 3 horas.
+-- Cada sentencia exige la forma antigua exacta del día, así que tras la primera corrida no hace nada y no pisa
+-- ediciones posteriores del admin. Las reservas se reasignan por hora de inicio: 16:00 cae en 14-17 y 18:00 en 17-20.
+UPDATE schedule_templates st
+  JOIN time_slots a ON a.template_id=st.id AND a.start_time='14:00:00' AND a.end_time='16:00:00'
+  JOIN time_slots b ON b.template_id=st.id AND b.start_time='16:00:00' AND b.end_time='18:00:00'
+  JOIN time_slots c ON c.template_id=st.id AND c.start_time='18:00:00' AND c.end_time='20:00:00'
+   SET st.capacity=40;
+
+UPDATE reservations r
+  JOIN time_slots b ON b.id=r.slot_id AND b.start_time='16:00:00' AND b.end_time='18:00:00'
+  JOIN time_slots a ON a.template_id=b.template_id AND a.start_time='14:00:00' AND a.end_time='16:00:00'
+  JOIN time_slots c ON c.template_id=b.template_id AND c.start_time='18:00:00' AND c.end_time='20:00:00'
+   SET r.slot_id=a.id;
+
+UPDATE reservations r
+  JOIN time_slots c ON c.id=r.slot_id AND c.start_time='18:00:00' AND c.end_time='20:00:00'
+  JOIN time_slots a ON a.template_id=c.template_id AND a.start_time='14:00:00' AND a.end_time='16:00:00'
+  JOIN time_slots b ON b.template_id=c.template_id AND b.start_time='16:00:00' AND b.end_time='18:00:00'
+   SET r.slot_id=b.id;
+
+UPDATE time_slots a
+  JOIN time_slots b ON b.template_id=a.template_id AND b.start_time='16:00:00' AND b.end_time='18:00:00'
+  JOIN time_slots c ON c.template_id=a.template_id AND c.start_time='18:00:00' AND c.end_time='20:00:00'
+   SET a.end_time='17:00:00', a.capacity=20
+ WHERE a.start_time='14:00:00' AND a.end_time='16:00:00';
+
+UPDATE time_slots b
+  JOIN time_slots a ON a.template_id=b.template_id AND a.start_time='14:00:00' AND a.end_time='17:00:00'
+  JOIN time_slots c ON c.template_id=b.template_id AND c.start_time='18:00:00' AND c.end_time='20:00:00'
+   SET b.start_time='17:00:00', b.end_time='20:00:00', b.capacity=20
+ WHERE b.start_time='16:00:00' AND b.end_time='18:00:00';
+
+DELETE c FROM time_slots c
+  JOIN time_slots a ON a.template_id=c.template_id AND a.start_time='14:00:00' AND a.end_time='17:00:00'
+  JOIN time_slots b ON b.template_id=c.template_id AND b.start_time='17:00:00' AND b.end_time='20:00:00'
+ WHERE c.start_time='18:00:00' AND c.end_time='20:00:00'
+   AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.slot_id=c.id);

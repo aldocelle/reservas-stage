@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Reserva de datos de demostración sincronizados con src/demo.js.
+// Reservas de demostración: 2 bloques por día (14:00–17:00 y 17:00–20:00), 20 cupos cada uno.
 // Uso: SEED_DEMO=1 php database/seed_demo.php
 // No afecta reservas reales: solo elimina y regenera filas source='seed'.
 
@@ -20,15 +20,15 @@ $dates = [
 
 $people = [
     ['Camila', 'Rojas', '+56912345678', 'camila@demo.cl'],
-    ['Diego', 'Paredes', '+56987654321', ''],
-    ['Fernanda', 'Lagos', '+56911223344', ''],
+    ['Diego', 'Paredes', '+56987654321', 'diego@demo.cl'],
+    ['Fernanda', 'Lagos', '+56911223344', 'fernanda@demo.cl'],
     ['Ignacio', 'Vera', '+56922334455', 'ignacio@demo.cl'],
-    ['Javiera', 'Soto', '+56933445566', ''],
-    ['Matías', 'Fuentes', '+56944556677', ''],
-    ['Antonia', 'Silva', '+56955667788', ''],
-    ['Sebastián', 'Reyes', '+56966778899', ''],
-    ['Valentina', 'Contreras', '+56977889900', ''],
-    ['Gabriel', 'Morales', '+56988990011', ''],
+    ['Javiera', 'Soto', '+56933445566', 'javiera@demo.cl'],
+    ['Matías', 'Fuentes', '+56944556677', 'matias@demo.cl'],
+    ['Antonia', 'Silva', '+56955667788', 'antonia@demo.cl'],
+    ['Sebastián', 'Reyes', '+56966778899', 'sebastian@demo.cl'],
+    ['Valentina', 'Contreras', '+56977889900', 'valentina@demo.cl'],
+    ['Gabriel', 'Morales', '+56988990011', 'gabriel@demo.cl'],
 ];
 
 $slotStmt = $pdo->prepare(
@@ -62,8 +62,8 @@ try {
     foreach ($dates as $date => [$weekday, $reservedPerSlot]) {
         $slotStmt->execute([$weekday]);
         $slots = $slotStmt->fetchAll();
-        if (count($slots) !== 3) {
-            throw new RuntimeException("La fecha {$date} no tiene exactamente 3 bloques activos");
+        if (count($slots) !== 2) {
+            throw new RuntimeException("La fecha {$date} no tiene exactamente 2 bloques activos");
         }
 
         foreach ($slots as $slot) {
@@ -92,9 +92,9 @@ try {
     }
 
     $pdo->commit();
-    echo "[seed] {$created} reservas demo sincronizadas con el frontend\n";
+    echo "[seed] {$created} reservas demo creadas\n";
     echo "[seed] reservas por bloque: 01-10=19, 02-10=19, 05-10=20, 06-10=8, 07-10=12\n";
-    echo "[seed] totales por día: 01-10=57/60, 02-10=57/60, 05-10=60/60, 06-10=24/60, 07-10=36/60\n";
+    echo "[seed] totales por día: 01-10=38/40, 02-10=38/40, 05-10=40/40, 06-10=16/40, 07-10=24/40\n";
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     fwrite(STDERR, '[seed] error: ' . $e->getMessage() . "\n");

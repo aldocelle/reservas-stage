@@ -267,7 +267,7 @@ onMounted(async () => { document.addEventListener('pointerdown', onDocumentPoint
 <tr v-for="s in d.slots" :key="s.id">
 <td><span class="bloque-tag">{{ bloqueNombre(s.start) || '—' }}</span></td>
 <td><input v-model="s.start" class="mini" maxlength="5" placeholder="14:00" :aria-label="'Inicio del bloque ' + (bloqueNombre(s.start) || s.id)"></td>
-<td><input v-model="s.end" class="mini" maxlength="5" placeholder="16:00" :aria-label="'Fin del bloque ' + (bloqueNombre(s.start) || s.id)"></td>
+<td><input v-model="s.end" class="mini" maxlength="5" placeholder="17:00" :aria-label="'Fin del bloque ' + (bloqueNombre(s.start) || s.id)"></td>
 <td><input v-model.number="s.capacity" class="mini" type="number" min="1" max="500" :aria-label="'Cupos del bloque ' + (bloqueNombre(s.start) || s.id)"></td>
 <td><input v-model="s.active" type="checkbox" :aria-label="'Activar bloque ' + (bloqueNombre(s.start) || s.id)"></td>
   <td class="row-actions"><button type="button" class="ghost-btn small" :disabled="slotBusy === s.id" @click="saveSlot(s.id, s)">Guardar</button><button type="button" class="danger small" :disabled="slotBusy === s.id" :aria-label="pendingSlot === s.id ? 'Confirmar desactivación del bloque' : 'Desactivar bloque'" @click="removeSlot(s.id)">{{ pendingSlot === s.id ? '¿Desactivar?' : 'Desactivar' }}</button></td>
@@ -306,6 +306,7 @@ onMounted(async () => { document.addEventListener('pointerdown', onDocumentPoint
 <th><button type="button" class="admin-sort" :class="{ active: sortKey === 'start_time' }" @click="sortBy('start_time')">Hora <span>{{ sortLabel('start_time') }}</span></button></th>
 <th><button type="button" class="admin-sort" :class="{ active: sortKey === 'name' }" @click="sortBy('name')">Nombre <span>{{ sortLabel('name') }}</span></button></th>
 <th><button type="button" class="admin-sort" :class="{ active: sortKey === 'whatsapp' }" @click="sortBy('whatsapp')">WhatsApp <span>{{ sortLabel('whatsapp') }}</span></button></th>
+<th>Email</th>
 <th><button type="button" class="admin-sort" :class="{ active: sortKey === 'reservation_code' }" @click="sortBy('reservation_code')">Código <span>{{ sortLabel('reservation_code') }}</span></button></th>
 <th><button type="button" class="admin-sort" :class="{ active: sortKey === 'status' }" @click="sortBy('status')">Estado <span>{{ sortLabel('status') }}</span></button></th>
 <th></th>
@@ -314,6 +315,7 @@ onMounted(async () => { document.addEventListener('pointerdown', onDocumentPoint
 <tr v-for="(r,rIdx) in sortedReservations" :key="r.id" :style="{'--i':rIdx}">
 <td>{{ r.reservation_date }}</td><td><span class="bloque-tag">{{ bloqueNombre(r.start_time) || '—' }}</span><br><span class="muted">{{ r.start_time }} - {{ r.end_time }}</span></td>
 <td>{{ r.first_name }} {{ r.last_name }}</td><td><a :href="'https://wa.me/' + String(r.whatsapp).replace(/[^0-9]/g, '')" target="_blank" rel="noreferrer">{{ r.whatsapp }}</a></td>
+<td><a v-if="r.email" class="admin-email" :href="'mailto:' + r.email">{{ r.email }}</a><span v-else>—</span></td>
 <td><code>{{ r.reservation_code }}</code></td>
 <td><span :class="['pill', r.status]">{{ STATUS_LABELS[r.status] || r.status }}</span></td>
 <td class="row-actions">

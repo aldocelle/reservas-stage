@@ -24,8 +24,10 @@ if (preg_match('#^/api/([a-z0-9_]+)\.php$#', $uri, $m)) {
   echo json_encode(['error' => 'Ruta no encontrada']);
   return true;
 }
-$path = realpath($root . $uri);
-if ($path !== false && str_starts_with($path, (string)realpath($root)) && is_file($path)) {
+// La URL llega codificada ("stage%20hero.jpg"): hay que decodificarla antes de buscar el archivo en disco.
+$file = rawurldecode($uri);
+$path = str_contains($file, "\0") ? false : realpath($root . $file);
+if ($path !== false &&str_starts_with($path, (string)realpath($root)) && is_file($path)) {
   return false; // el servidor embebido entrega el estático tal cual
 }
 $index = $root . '/index.html';

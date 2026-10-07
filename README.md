@@ -15,19 +15,19 @@ Landing + reservas. Frontend Vue 3 + Vite, backend PHP + MySQL.
 - **Panel admin** (`#/admin`, link en el footer): resumen, días/horarios/cupos, reservas (filtros, cambio de estado, WhatsApp clickeable) y configuración del sitio. Login por sesión PHP.
 - **Validaciones backend**: fecha real/no pasada/máx 60 días, `weekday` del slot = día pedido, sin duplicados (mismo whatsapp+slot+fecha), sin sobrecupo (transacción + `FOR UPDATE`), whatsapp 8–15 dígitos, email opcional válido, reintento de código ante colisión. Todo cambio admin queda en `audit_logs`.
 
-## Horarios oficiales (lunes a viernes · 3 bloques)
+## Horarios oficiales (lunes a viernes · 2 bloques)
 
 | Bloque | Horario | Cupos por bloque |
 | --- | --- | --- |
-| Bloque 1 | 14:00 a 16:00 Hrs. | 14 |
-| Bloque 2 | 16:00 a 18:00 Hrs. | 14 |
-| Bloque 3 | 18:00 a 20:00 Hrs. | 12 |
+| Bloque 1 | 14:00 a 17:00 Hrs. | 20 |
+| Bloque 2 | 17:00 a 20:00 Hrs. | 20 |
 | **Total del día** | 14:00 – 20:00 Hrs. | **40** |
 
-- Los bloques viven en `schedule_templates` (Lun–Vie → `weekday` 1–5) + `time_slots` (14:00 / 16:00 / 18:00) y se cargan con `database/schema.sql`.
-- Los nombres ("Bloque 1/2/3") y los rangos se derivan de la hora de inicio en `src/blocks.js`: web pública, panel admin y confirmación usan la misma fuente. Un horario fuera de esos 3 se muestra solo con su rango.
+- Las bases creadas con el horario anterior (3 bloques de 2 horas) se convierten solas al arrancar: `database/schema.sql` reasigna las reservas por hora de inicio (16:00 → Bloque 1, 18:00 → Bloque 2) y borra el bloque 18:00–20:00. Solo actúa si encuentra la forma antigua exacta.
+- Los bloques viven en `schedule_templates` (Lun–Vie → `weekday` 1–5) + `time_slots` (14:00 / 17:00) y se cargan con `database/schema.sql`.
+- Los nombres ("Bloque 1/2") y los rangos se derivan de la hora de inicio en `src/blocks.js`: web pública, panel admin y confirmación usan la misma fuente. Un horario fuera de esos 2 se muestra solo con su rango.
 - **Calendario**: se muestra el mes completo en 5 columnas (lun–vie) con los cupos de cada día (usados/total + barra). Arranca en `booking_start_date` (por defecto **2026-10-01**, "a partir de octubre") y llega 60 días adelante, con navegación ‹ › por mes. Al elegir un día se cargan sus 3 bloques. El backend rechaza cualquier fecha anterior al inicio (`422 Las reservas comienzan el 01-10-2026`).
-- **Responsive**: en móvil (≤760px) se ven siempre **los 5 días de la semana y los 3 bloques en pantalla** (grilla de 5 y de 3 columnas, sin scroll horizontal), con calendario compacto; ≤400px reduce tipografía y celdas. Verificado a 360, 390 y 1440 px.
+- **Responsive**: en móvil (≤760px) se ven siempre **los 5 días de la semana y los 2 bloques en pantalla** (grilla de 5 y de 2 columnas, sin scroll horizontal), con calendario compacto; ≤400px reduce tipografía y celdas. Verificado a 360, 390 y 1440 px.
 - Cambiar cupos, horarios o apagar un bloque: panel admin → **Días y horarios** (sin deploy). Pausar todo: **Config → Reservas habilitadas** (`booking_enabled`).
 
 ## Arranque rápido (local, idéntico a producción)
@@ -141,10 +141,10 @@ scripts/                railway-deploy.sh, vercel-deploy.sh, demo-publica.sh
 
 - `GET /api/availability.php?date=YYYY-MM-DD` → `{ date, slots: [{ slot_id, start_time, end_time, capacity, reserved, available }] }`
 - `GET /api/availability_range.php?from=YYYY-MM-DD&to=YYYY-MM-DD` (máx 62 días) → `{ today, starts_at, max_date, days: [{ date, weekday, slots, total, used, available, bookable }] }` — alimenta el calendario con 1 request por mes.
-- `POST /api/reservations.php` body `{ date, slotId, firstName, lastName, whatsapp, email?, whatsappConsent? }` → `201 { reservation: { id, reservation_code, status } }`
+- `POST /api/reservations.php` body `{ date, slotId, firstName, lastName, whatsapp, email, whatsappConsent? }` → `201 { reservation: { id, reservation_code, status } }`
 - Panel admin en `#/admin` (`src/AdminPanel.vue`, link en footer): login por sesión PHP (`POST /api/auth.php?action=login`), dashboard, días/horarios/cupos (`/api/schedules.php`), reservas y estados (`/api/admin_reservations.php`), config del sitio (`/api/settings.php`, público en `/api/public_settings.php`). Todo cambio admin queda en `audit_logs`.
 
-Validaciones backend: fecha `YYYY-MM-DD` real, no pasada, máx 60 días, `weekday` del slot = día pedido (1=Lun…7=Dom), sin duplicados (mismo whatsapp+slot+fecha), sin sobrecupo (transacción + `FOR UPDATE`), whatsapp `8–15 dígitos`, email opcional válido, reintento de código `VS-XXXXXXXX` ante colisión.
+Validaciones backend: fecha `YYYY-MM-DD` real, no pasada, máx 60 días, `weekday` del slot = día pedido (1=Lun…7=Dom), sin duplicados (mismo whatsapp+slot+fecha), sin sobrecupo (transacción + `FOR UPDATE`), whatsapp `8–15 dígitos`, email obligatorio y válido, consentimiento de WhatsApp obligatorio, reintento de código `VS-XXXXXXXX` ante colisión.
 
 ## Desarrollo local
 

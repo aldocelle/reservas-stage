@@ -12,7 +12,8 @@ $rutRaw = $x['rut'] ?? '';
 $rut = normalizeRut($rutRaw);
 $emailRaw = trim((string)($x['email'] ?? ''));
 $consent = !empty($x['whatsappConsent']) ? 1 : 0;
-if ($date === '' || $slotId === '' || $firstName === '' || $lastName === '' || $whatsappRaw === '') respond(['error' => 'Faltan datos obligatorios'], 422);
+if ($date === '' || $slotId === '' || $firstName === '' || $lastName === '' || $whatsappRaw === '' || $emailRaw === '') respond(['error' => 'Faltan datos obligatorios'], 422);
+if ($emailRaw === '' || !$consent) respond(['error' => 'Faltan datos obligatorios'], 422);
 if (!validateRut($rut)) respond(['error' => 'El RUT ingresado no es válido. Revisa los datos e inténtalo nuevamente.'], 422);
 if (!validDate($date)) respond(['error' => 'Fecha inválida, usa YYYY-MM-DD'], 422);
 $today = date('Y-m-d');
@@ -24,7 +25,7 @@ if (mb_strlen($firstName) < 2 || mb_strlen($firstName) > 80 || mb_strlen($lastNa
 $whatsapp = preg_replace('/[\s\-\.\(\)]/', '', $whatsappRaw);
 if (!preg_match('/^\+?\d{8,15}$/', $whatsapp)) respond(['error' => 'WhatsApp inválido (8 a 15 dígitos)'], 422);
 $email = $emailRaw === '' ? null : $emailRaw;
-if ($email !== null && (mb_strlen($email) > 160 || !filter_var($email, FILTER_VALIDATE_EMAIL))) respond(['error' => 'Email inválido'], 422);
+if (mb_strlen($email) > 160 || !filter_var($email, FILTER_VALIDATE_EMAIL)) respond(['error' => 'Email inválido'], 422);
 if (mb_strlen($slotId) > 36) respond(['error' => 'Horario no disponible'], 422);
 $pdo->beginTransaction();
 try {
